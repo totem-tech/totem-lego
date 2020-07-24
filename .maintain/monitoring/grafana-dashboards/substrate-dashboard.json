@@ -1542,8 +1542,8 @@
         "allValue": null,
         "current": {
           "selected": true,
-          "text": "substrate",
-          "value": "substrate"
+          "text": "totem-lego",
+          "value": "totem-lego"
         },
         "hide": 0,
         "includeAll": false,
@@ -1553,16 +1553,11 @@
         "options": [
           {
             "selected": true,
-            "text": "substrate",
-            "value": "substrate"
-          },
-          {
-            "selected": false,
-            "text": "polkadot",
-            "value": "polkadot"
+            "text": "totem-lego",
+            "value": "totem-lego"
           }
         ],
-        "query": "substrate, polkadot",
+        "query": "totem-lego",
         "skipUrlSync": false,
         "type": "custom"
       },
@@ -1641,7 +1636,7 @@
     ]
   },
   "timezone": "",
-  "title": "Substrate Dashboard",
+  "title": "Totem-lego Dashboard",
   "uid": "ColmenaLabs",
   "variables": {
     "list": []

@@ -22,7 +22,7 @@ use sc_chain_spec::ChainSpecExtension;
 use sp_core::{Pair, Public, crypto::UncheckedInto, sr25519};
 use serde::{Serialize, Deserialize};
 use node_runtime::{
-	AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, ContractsConfig, CouncilConfig,
+	AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, CouncilConfig,
 	DemocracyConfig,GrandpaConfig, ImOnlineConfig, SessionConfig, SessionKeys, StakerStatus,
 	StakingConfig, ElectionsConfig, IndicesConfig, SocietyConfig, SudoConfig, SystemConfig,
 	TechnicalCommitteeConfig, wasm_binary_unwrap,
@@ -66,6 +66,11 @@ pub type ChainSpec = sc_service::GenericChainSpec<
 /// Flaming Fir testnet generator
 pub fn flaming_fir_config() -> Result<ChainSpec, String> {
 	ChainSpec::from_json_bytes(&include_bytes!("../res/flaming-fir.json")[..])
+}
+
+/// Totem Lego testnet generator
+pub fn totem_lego_config() -> Result<ChainSpec, String> {
+	ChainSpec::from_json_bytes(&include_bytes!("../res/totem-lego.json")[..])
 }
 
 fn session_keys(
@@ -216,7 +221,7 @@ pub fn testnet_genesis(
 	)>,
 	root_key: AccountId,
 	endowed_accounts: Option<Vec<AccountId>>,
-	enable_println: bool,
+	_enable_println: bool,
 ) -> GenesisConfig {
 	let endowed_accounts: Vec<AccountId> = endowed_accounts.unwrap_or_else(|| {
 		vec![
@@ -289,12 +294,12 @@ pub fn testnet_genesis(
 						.collect(),
 			phantom: Default::default(),
 		}),
-		pallet_contracts: Some(ContractsConfig {
-			current_schedule: pallet_contracts::Schedule {
-				enable_println, // this should only be enabled on development chains
-				..Default::default()
-			},
-		}),
+		// pallet_contracts: Some(ContractsConfig {
+		// 	current_schedule: pallet_contracts::Schedule {
+		// 		enable_println, // this should only be enabled on development chains
+		// 		..Default::default()
+		// 	},
+		// }),
 		pallet_sudo: Some(SudoConfig {
 			key: root_key,
 		}),

@@ -1,12 +1,12 @@
 [package]
 name = "node-runtime"
 version = "2.0.0-rc5"
-authors = ["Parity Technologies <admin@parity.io>"]
+authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
 edition = "2018"
 build = "build.rs"
 license = "Apache-2.0"
-homepage = "https://substrate.dev"
-repository = "https://github.com/paritytech/substrate/"
+homepage = "https://totemaccounting.com"
+repository = "https://gitlab.com/totem-tech/totem-lego"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -49,9 +49,9 @@ pallet-authorship = { version = "2.0.0-rc5", default-features = false, path = ".
 pallet-babe = { version = "2.0.0-rc5", default-features = false, path = "../../../frame/babe" }
 pallet-balances = { version = "2.0.0-rc5", default-features = false, path = "../../../frame/balances" }
 pallet-collective = { version = "2.0.0-rc5", default-features = false, path = "../../../frame/collective" }
-pallet-contracts = { version = "2.0.0-rc5", default-features = false, path = "../../../frame/contracts" }
-pallet-contracts-primitives = { version = "2.0.0-rc5", default-features = false, path = "../../../frame/contracts/common/" }
-pallet-contracts-rpc-runtime-api = { version = "0.8.0-rc5", default-features = false, path = "../../../frame/contracts/rpc/runtime-api/" }
+# pallet-contracts = { version = "2.0.0-rc5", default-features = false, path = "../../../frame/contracts" }
+# pallet-contracts-primitives = { version = "2.0.0-rc5", default-features = false, path = "../../../frame/contracts/common/" }
+# pallet-contracts-rpc-runtime-api = { version = "0.8.0-rc5", default-features = false, path = "../../../frame/contracts/rpc/runtime-api/" }
 pallet-democracy = { version = "2.0.0-rc5", default-features = false, path = "../../../frame/democracy" }
 pallet-elections-phragmen = { version = "2.0.0-rc5", default-features = false, path = "../../../frame/elections-phragmen" }
 pallet-finality-tracker = { version = "2.0.0-rc5", default-features = false, path = "../../../frame/finality-tracker" }
@@ -98,9 +98,9 @@ std = [
 	"sp-block-builder/std",
 	"codec/std",
 	"pallet-collective/std",
-	"pallet-contracts/std",
-	"pallet-contracts-primitives/std",
-	"pallet-contracts-rpc-runtime-api/std",
+	# "pallet-contracts/std",
+	# "pallet-contracts-primitives/std",
+	# "pallet-contracts-rpc-runtime-api/std",
 	"pallet-democracy/std",
 	"pallet-elections-phragmen/std",
 	"frame-executive/std",

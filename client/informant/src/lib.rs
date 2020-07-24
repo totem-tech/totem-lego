@@ -178,7 +178,7 @@ where
 			}
 
 			info!(
-				target: "substrate",
+				target: "totem-lego",
 				"✨ {}Imported #{} ({})",
 				prefix,
 				Colour::White.bold().paint(format!("{}", n.header.number())),

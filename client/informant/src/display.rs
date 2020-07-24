@@ -81,7 +81,7 @@ impl<B: BlockT> InformantDisplay<B> {
 
 		if self.format.enable_color {
 			info!(
-				target: "substrate",
+				target: "totem-lego",
 				"{} {}{}{} ({} peers), best: #{} ({}), finalized #{} ({}), {} {}",
 				level,
 				self.format.prefix,
@@ -97,7 +97,7 @@ impl<B: BlockT> InformantDisplay<B> {
 			)
 		} else {
 			info!(
-				target: "substrate",
+				target: "totem-lego",
 				"{} {}{}{} ({} peers), best: #{} ({}), finalized #{} ({}), ⬇ {} ⬆ {}",
 				level,
 				self.format.prefix,

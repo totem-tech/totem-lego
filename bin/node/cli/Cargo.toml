@@ -1,14 +1,14 @@
 [package]
 name = "node-cli"
-version = "2.0.0-rc5"
-authors = ["Parity Technologies <admin@parity.io>"]
-description = "Generic Substrate node implementation in Rust."
+version = "2.0.0"
+authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
+description = "Totem Live Accounting Adaptation of Substrate implementation in Rust."
 build = "build.rs"
 edition = "2018"
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
-default-run = "substrate"
-homepage = "https://substrate.dev"
-repository = "https://github.com/paritytech/substrate/"
+default-run = "totem-lego"
+homepage = "https://totemaccounting.com"
+repository = "https://gitlab.com/totem-tech/totem-lego/"
 
 [package.metadata.wasm-pack.profile.release]
 # `wasm-opt` has some problems on linux, see
@@ -25,7 +25,7 @@ is-it-maintained-issue-resolution = { repository = "paritytech/substrate" }
 is-it-maintained-open-issues = { repository = "paritytech/substrate" }
 
 [[bin]]
-name = "substrate"
+name = "totem-lego"
 path = "bin/main.rs"
 required-features = ["cli"]
 
@@ -79,7 +79,7 @@ sc-authority-discovery = { version = "0.8.0-rc5",  path = "../../../client/autho
 # frame dependencies
 pallet-indices = { version = "2.0.0-rc5", path = "../../../frame/indices" }
 pallet-timestamp = { version = "2.0.0-rc5", default-features = false, path = "../../../frame/timestamp" }
-pallet-contracts = { version = "2.0.0-rc5", path = "../../../frame/contracts" }
+# pallet-contracts = { version = "2.0.0-rc5", path = "../../../frame/contracts" }
 frame-system = { version = "2.0.0-rc5", path = "../../../frame/system" }
 pallet-balances = { version = "2.0.0-rc5", path = "../../../frame/balances" }
 pallet-transaction-payment = { version = "2.0.0-rc5", path = "../../../frame/transaction-payment" }

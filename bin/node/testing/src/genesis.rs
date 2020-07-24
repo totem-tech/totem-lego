@@ -22,7 +22,7 @@ use crate::keyring::*;
 use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 use node_runtime::{
 	GenesisConfig, BalancesConfig, SessionConfig, StakingConfig, SystemConfig,
-	GrandpaConfig, IndicesConfig, ContractsConfig, SocietyConfig, wasm_binary_unwrap,
+	GrandpaConfig, IndicesConfig, SocietyConfig, wasm_binary_unwrap,
 	AccountId, StakerStatus,
 };
 use node_runtime::constants::currency::*;
@@ -97,9 +97,9 @@ pub fn config_endowed(
 			invulnerables: vec![alice(), bob(), charlie()],
 			.. Default::default()
 		}),
-		pallet_contracts: Some(ContractsConfig {
-			current_schedule: Default::default(),
-		}),
+		// pallet_contracts: Some(ContractsConfig {
+		// 	current_schedule: Default::default(),
+		// }),
 		pallet_babe: Some(Default::default()),
 		pallet_grandpa: Some(GrandpaConfig {
 			authorities: vec![],

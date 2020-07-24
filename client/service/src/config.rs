@@ -170,7 +170,7 @@ impl PrometheusConfig {
 	pub fn new_with_default_registry(port: SocketAddr) -> Self {
 		Self {
 			port,
-			registry: Registry::new_custom(Some("substrate".into()), None)
+			registry: Registry::new_custom(Some("totem-lego".into()), None)
 				.expect("this can only fail if the prefix is empty")
 		}
 	}
@@ -217,7 +217,7 @@ pub enum BasePath {
 }
 
 impl BasePath {
-	/// Create a `BasePath` instance using a temporary directory prefixed with "substrate" and use
+	/// Create a `BasePath` instance using a temporary directory prefixed with "totem-lego" and use
 	/// it as base path.
 	///
 	/// Note: the temporary directory will be created automatically and deleted when the `BasePath`
@@ -225,7 +225,7 @@ impl BasePath {
 	#[cfg(not(target_os = "unknown"))]
 	pub fn new_temp_dir() -> io::Result<BasePath> {
 		Ok(BasePath::Temporary(
-			tempfile::Builder::new().prefix("substrate").tempdir()?,
+			tempfile::Builder::new().prefix("totem-lego").tempdir()?,
 		))
 	}
 
