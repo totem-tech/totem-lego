@@ -162,7 +162,7 @@ impl<T: Trait> Module<T> {
         let mut new_balance: LedgerBalance = 0; 
         let mut new_global_balance: LedgerBalance = 0; 
         
-        let posting_index = Self::posting_number().checked_add(1u128).ok_or(Error::<T>::ErrorGlobalOverflow)?;
+        let posting_index = Self::posting_number().checked_add(1u128).ok_or(<Error<T>>::ErrorGlobalOverflow)?;
         
         let zero: LedgerBalance = 0;
         let ab: LedgerBalance = c.abs();        
@@ -175,13 +175,13 @@ impl<T: Trait> Module<T> {
         
         if c > zero {
             // check adding the new amount to the existing balance
-            new_balance = Self::balance_by_ledger(&balance_key).checked_add(c).ok_or(Error::<T>::ErrorOverflow)?;
-            new_global_balance = Self::global_ledger(&a).checked_add(c).ok_or(Error::<T>::ErrorGlobalOverflow)?;
+            new_balance = Self::balance_by_ledger(&balance_key).checked_add(c).ok_or(<Error<T>>::ErrorOverflow)?;
+            new_global_balance = Self::global_ledger(&a).checked_add(c).ok_or(<Error<T>>::ErrorGlobalOverflow)?;
             
         } else if c < zero {
             // check subtracting the new amount from the existing balance
-            new_balance = Self::balance_by_ledger(&balance_key).checked_sub(c).ok_or(Error::<T>::ErrorOverflow)?;
-            new_global_balance = Self::global_ledger(&a).checked_sub(c).ok_or(Error::<T>::ErrorGlobalOverflow)?;
+            new_balance = Self::balance_by_ledger(&balance_key).checked_sub(c).ok_or(<Error<T>>::ErrorOverflow)?;
+            new_global_balance = Self::global_ledger(&a).checked_sub(c).ok_or(<Error<T>>::ErrorGlobalOverflow)?;
         }
         
         PostingNumber::put(posting_index);
@@ -237,14 +237,14 @@ impl<T: Trait> Posting<T::AccountId,T::Hash,T::BlockNumber> for Module<T> {
                                     // This event is because there is a major system error in the reversal process
                                     // Self::deposit_event(RawEvent::ErrorInError(o));
                                     // return Err("System Failure in Account Posting");
-                                    return Err(Error::<T>::ErrorInError);
+                                    return Err(<Error<T>>::ErrorInError.into());
                                     // Error<T>::ErrorInError;
                                 },
                             }
                         }
                         // Self::deposit_event(RawEvent::ErrorOverflow(a.1));
                         // return Err("Overflow error, amount too big!");
-                        return Err(Error::<T>::ErrorOverflow);
+                        return Err(<Error<T>>::ErrorOverflow.into());
                         // Error<T>::ErrorOverflow;
                     },
                 }
