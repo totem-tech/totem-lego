@@ -78,11 +78,15 @@ pub use pallet_staking::StakerStatus;
 
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
+// use impls::{ConversionHandler, CurrencyToVoteHandler, Author};
 use impls::{CurrencyToVoteHandler, Author};
 
 /// Constant values used within the runtime.
 pub mod constants;
 use constants::{time::*, currency::*};
+
+mod accounting_traits;
+mod accounting;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -838,6 +842,11 @@ impl pallet_vesting::Trait for Runtime {
 	type WeightInfo = ();
 }
 
+impl accounting::Trait for Runtime {
+	type Event = Event;
+	type Randomness = RandomnessCollectiveFlip;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -876,6 +885,7 @@ construct_runtime!(
 		Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>},
 		Proxy: pallet_proxy::{Module, Call, Storage, Event<T>},
 		Multisig: pallet_multisig::{Module, Call, Storage, Event<T>},
+		AccountingModule: accounting::{Module, Call, Storage, Event<T>},
 	}
 );
 
