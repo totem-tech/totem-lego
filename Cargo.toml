@@ -1,8 +1,5 @@
 [workspace]
 members = [
-	"bin/node-template/node",
-	"bin/node-template/pallets/template",
-	"bin/node-template/runtime",
 	"bin/node/bench",
 	"bin/node/browser-testing",
 	"bin/node/cli",
@@ -59,6 +56,7 @@ members = [
 	"client/tracing/proc-macro",
 	"client/transaction-pool",
 	"client/transaction-pool/graph",
+	"frame/accounting",
 	"frame/assets",
 	"frame/atomic-swap",
 	"frame/aura",
