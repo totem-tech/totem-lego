@@ -86,15 +86,11 @@
 #[frame_support::pallet]
 pub mod pallet {
 
-    use frame_support::{
-        codec::{Codec, Decode, Encode},
-        decl_error, decl_event, decl_module, decl_storage,
-        dispatch::DispatchResult,
-        pallet_prelude::*,
-        weights::{DispatchClass, Weight},
-        Parameter, StorageMap, StorageValue,
-    };
-    use frame_system::{self};
+    //codec::{Codec, Decode, Encode},
+    //weights::{DispatchClass, Weight},
+    //Parameter, StorageMap, StorageValue,
+    use frame_support::{codec::Codec, pallet_prelude::*};
+    use frame_system::pallet_prelude::*;
 
     use sp_primitives::crypto::UncheckedFrom;
     use sp_runtime::traits::{Convert, Hash, Member};
@@ -106,70 +102,76 @@ pub mod pallet {
     type Account = u64;
     /// 0=Debit(false) 1=Credit(true) Note: Debit and Credit balances are account specific - see chart of accounts
     type Indicator = bool;
+    //#[derive()]
+    //enum Indicator {
+    //    Debit = 0,
+    //    Credit = 1
+    //}
     /// The index number for identifying the posting to ledgers
     type PostingIndex = u128;
 
     #[pallet::pallet]
     #[pallet::generate_store(trait Store)]
+    // New name of `Module`:
     pub struct Pallet<T>(_);
 
-    #[pallet::storage]
-    /// Every accounting post gets an index
-    pub type PostingNumber<T, I = ()> = get(fn posting_number): Option<u128>;
+    // STORAGE:
+    // StorageValue<_, value>
+    // StorageMap<_, hasher, key, value>
+    // StorageDoubleMap<_, hasher, key, hasher, key, value, ??>
 
     #[pallet::storage]
-    /// Associate the posting index with the identity
-    pub type IdAccountPostingIdList<T, I = ()> = get(fn id_account_posting_id_list): map hasher(/*TODO*/twox_64_concat) (T::AccountId, Account) => Vec<u128>;
+    #[pallet::getter(fn posting_number)]
+    /// Every accounting post gets an index.
+    pub type PostingNumber<T: Config> = StorageValue<_, u128>;
 
     #[pallet::storage]
-    /// Convenience list of Accounts used by an identity. Useful for UI read performance
-    pub type AccountsById<T, I = ()> = get(fn accounts_by_id): map hasher(/*TODO*/twox_64_concat) T::AccountId => Vec<Account>;
+    #[pallet::getter(fn id_account_posting_id_list)]
+    /// Associate the posting index with the identity.
+    pub type IdAccountPostingIdList<T: Config> =
+        StorageMap<_, /*TODO correct Hasher*/ Blake2_128Concat, (T::AccountId, Account), Vec<u128>>;
 
     #[pallet::storage]
-    /// Accounting Balances
-    pub type BalanceByLedger<T, I = ()> = get(fn balance_by_ledger): map hasher(/*TODO*/twox_64_concat) (T::AccountId, Account) => LedgerBalance;
+    #[pallet::getter(fn accounts_by_id)]
+    /// Convenience list of Accounts used by an identity. Useful for UI read performance.
+    pub type AccountsById<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Vec<Account>>;
 
     #[pallet::storage]
-    /// Detail of the accounting posting (for Audit)
-    pub type PostingDetail<T, I = ()> = get(fn posting_detail): map hasher(/*TODO*/twox_64_concat) (T::AccountId, Account, u128) => Option<(T::BlockNumber,LedgerBalance,Indicator,T::Hash, T::BlockNumber)>;
+    #[pallet::getter(fn balance_by_ledger)]
+    /// Accounting Balances.
+    pub type BalanceByLedger<T: Config> = StorageMap<_, Blake2_128Concat, (T::AccountId, Account), LedgerBalance>;
 
     #[pallet::storage]
-    /// yay! Totem!
-    pub type GlobalLedger<T, I = ()> = get(fn global_ledger): map hasher(/*TODO*/twox_64_concat) Account => LedgerBalance;
+    #[pallet::getter(fn posting_detail)]
+    /// Detail of the accounting posting (for Audit).
+    pub type PostingDetail<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        (T::AccountId, Account, u128),
+        Option<(T::BlockNumber, LedgerBalance, Indicator, T::Hash, T::BlockNumber)>,
+    >;
 
     #[pallet::storage]
-    /// Address to book the sales tax to and the tax jurisdiction (Experimental, may be deprecated in future)
-    pub type TaxesByJurisdiction<T, I = ()> = get(fn taxes_by_jurisdiction): map hasher(/*TODO*/twox_64_concat) (T::AccountId, T::AccountId) => LedgerBalance;
-    
-    decl_storage! {
-        trait Store for Module<T: Config> as Accounting {
-            /// Every accounting post gets an index
-            PostingNumber get(fn posting_number): Option<u128>;
-            /// Associate the posting index with the identity
-            IdAccountPostingIdList get(fn id_account_posting_id_list): map hasher(/*TODO*/twox_64_concat) (T::AccountId, Account) => Vec<u128>;
-            /// Convenience list of Accounts used by an identity. Useful for UI read performance
-            AccountsById get(fn accounts_by_id): map hasher(/*TODO*/twox_64_concat) T::AccountId => Vec<Account>;
-            /// Accounting Balances
-            BalanceByLedger get(fn balance_by_ledger): map hasher(/*TODO*/twox_64_concat) (T::AccountId, Account) => LedgerBalance;
-            /// Detail of the accounting posting (for Audit)
-            PostingDetail get(fn posting_detail): map hasher(/*TODO*/twox_64_concat) (T::AccountId, Account, u128) => Option<(T::BlockNumber,LedgerBalance,Indicator,T::Hash, T::BlockNumber)>;
-            /// yay! Totem!
-            GlobalLedger get(fn global_ledger): map hasher(/*TODO*/twox_64_concat) Account => LedgerBalance;
-            /// Address to book the sales tax to and the tax jurisdiction (Experimental, may be deprecated in future)
-            TaxesByJurisdiction get(fn taxes_by_jurisdiction): map hasher(/*TODO*/twox_64_concat) (T::AccountId, T::AccountId) => LedgerBalance;
+    #[pallet::getter(fn global_ledger)]
+    /// Yay! Totem!
+    pub type GlobalLedger<T: Config> = StorageMap<_, Blake2_128Concat, Account, LedgerBalance>;
 
-            // TODO
-            // Quantities Accounting
-            // Depreciation (calculated everytime there is a transaction so as not to overwork the runtime) - sets "last seen block" to calculate the delta for depreciation
-        }
-    }
+    #[pallet::storage]
+    #[pallet::getter(fn taxes_by_jurisdiction)]
+    /// Address to book the sales tax to and the tax jurisdiction (Experimental, may be deprecated in future).
+    pub type TaxesByJurisdiction<T: Config> =
+        StorageMap<_, Blake2_128Concat, (T::AccountId, T::AccountId), LedgerBalance>;
+
+    // TODO
+    // Quantities Accounting
+    // Depreciation (calculated everytime there is a transaction so as not to overwork the runtime) - sets "last seen block" to calculate the delta for depreciation
 
     #[pallet::config] //TODO declare configs that are constant
     pub trait Config: frame_system::Config + frame_timestamp::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// The equivalent to Balance trait to avoid cyclical dependency.
-        /// This is to be used as a replacement for actual network currency
+        /// This is to be used as a replacement for actual network currency.
         type CoinAmount: Parameter
             + Member
             //+ SimpleArithmetic
@@ -193,16 +195,18 @@ pub mod pallet {
             fwd: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
             rev: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
             trk: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-        ) -> DispatchResult;
-        fn account_for_fees(f: CoinAmount, p: AccountId) -> DispatchResult;
+        ) -> DispatchResultWithPostInfo;
+        fn account_for_fees(f: CoinAmount, p: AccountId) -> DispatchResultWithPostInfo;
         fn get_escrow_account() -> AccountId;
         fn get_pseudo_random_hash(s: AccountId, r: AccountId) -> Hash;
     }
 
     #[pallet::error]
-    pub enum Error<T, I = ()> {
+    pub enum Error<T> {
         /// Error fetching latest posting index.
         PostingIndexFetching,
+        BalanceByLedgerFetching,
+        GlobalLedgerFetching,
         /// Posting index overflowed.
         PostingIndexOverflow,
         /// Balance Value overflowed.
@@ -217,20 +221,12 @@ pub mod pallet {
         PostingToAccount,
     }
 
-    decl_module! {
-        pub struct Module<T: Config> for enum Call where origin: T::Origin {
-            fn deposit_event() = default;
-            //fn opening_balance() -> Result {
-            //    Ok(())
-            //}
-            //fn adjustment() -> Result {
-            //    Ok(())
-            //}
-        }
-    }
+    #[pallet::hooks]
+    // for enum Call where origin: T::Origin ← what should I do with that?
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
-    impl<T: Config> Module<T> {
-        #[allow(dead_code)]
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
         /// Basic posting function (warning! can cause imbalance if not called with corresponding debit or credit entries)
         /// The reason why this is a simple function is that (for example) one debit posting may correspond with one or many credit
         /// postings and vice-versa. For example a debit to Accounts Receivable is the gross invoice amount, which could correspond with
@@ -238,21 +234,22 @@ pub mod pallet {
         /// equal to the single debit in accounts receivable, but only one posting needs to be made to that account, and two posting for the others.
         /// The Totem Accounting Recipes are constructed using this simple function.
         /// The second Blocknumber is for re-targeting the entry in the accounts, i.e. for adjustments prior to or after the current period (generally accruals).
+        #[pallet::weight(0/*TODO*/)]
         fn post_amounts(
-            (o, a, c, d, h, b, t): (
-                T::AccountId,
-                Account,
-                LedgerBalance,
-                bool,
-                T::Hash,
-                T::BlockNumber,
-                T::BlockNumber,
-            ),
-        ) -> DispatchResult {
-            let posting_index = if <PostingNumber>::exists() {
+            origin: OriginFor<T>,
+            //TODO: give an explicit name to those variables:
+            o: T::AccountId, //TODO: is this the origin?
+            a: Account,
+            c: LedgerBalance,
+            d: bool,
+            h: T::Hash,
+            b: T::BlockNumber,
+            t: T::BlockNumber,
+        ) -> DispatchResultWithPostInfo {
+            let posting_index = if <PostingNumber<T>>::exists() {
                 // Get and increment the posting number
                 Self::posting_number().ok_or(Error::<T>::PostingIndexFetching)?.checked_add(1).ok_or_else(|| {
-                    Self::deposit_event(RawEvent::ErrorGlobalOverflow());
+                    Self::deposit_event(Event::ErrorGlobalOverflow());
                     Error::<T>::PostingIndexOverflow
                 })?
             } else {
@@ -267,28 +264,34 @@ pub mod pallet {
             // Reversals must occur in the parent function (i.e. that calls this function).
             // As all values passed to this function are already signed +/- we only need to sum to the previous balance and check for overflow
             // Updates are only made to storage once tests below are passed for debits or credits.
-            let new_balance = Self::balance_by_ledger(&balance_key).checked_add(c).ok_or_else(|| {
-                Self::deposit_event(RawEvent::ErrorOverflow(a));
-                Error::<T>::BalanceValueOverflow
-            })?;
-            let new_global_balance = Self::global_ledger(&a).checked_add(c).ok_or_else(|| {
-                Self::deposit_event(RawEvent::ErrorGlobalOverflow());
-                Error::<T>::GlobalBalanceValueOverflow
-            })?;
+            let new_balance = Self::balance_by_ledger(&balance_key)
+                .ok_or(Error::<T>::BalanceByLedgerFetching)?
+                .checked_add(c)
+                .ok_or_else(|| {
+                    Self::deposit_event(Event::ErrorOverflow(a));
+                    Error::<T>::BalanceValueOverflow
+                })?;
+            let new_global_balance =
+                Self::global_ledger(&a).ok_or(Error::<T>::GlobalLedgerFetching)?.checked_add(c).ok_or_else(|| {
+                    Self::deposit_event(Event::ErrorGlobalOverflow());
+                    Error::<T>::GlobalBalanceValueOverflow
+                })?;
 
-            PostingNumber::put(posting_index);
+            <PostingNumber<T>>::put(posting_index);
+            //TODO what if `id_account_posting_id_list` is None?
+            //Same for the others
             <IdAccountPostingIdList<T>>::mutate(&balance_key, |id_account_posting_id_list| {
-                id_account_posting_id_list.push(posting_index)
+                id_account_posting_id_list.as_mut().map(|l| l.push(posting_index))
             });
-            <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.retain(|h| h != &a));
-            <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.push(a));
+            <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.retain(|h| h != &a)));
+            <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.push(a)));
             <BalanceByLedger<T>>::insert(&balance_key, new_balance);
-            <PostingDetail<T>>::insert(&posting_key, detail);
-            GlobalLedger::insert(&a, new_global_balance);
+            <PostingDetail<T>>::insert(&posting_key, Some(detail));
+            <GlobalLedger<T>>::insert(&a, new_global_balance);
 
-            Self::deposit_event(RawEvent::LegderUpdate(o, a, c, posting_index));
+            Self::deposit_event(Event::LegderUpdate(o, a, c, posting_index));
 
-            Ok(())
+            Ok(().into())
         }
     }
 
@@ -312,14 +315,15 @@ pub mod pallet {
             fwd: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
             rev: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
             trk: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let reversal_keys = rev.clone();
             let mut track_rev_keys = trk.clone();
             let length_limit = reversal_keys.len();
 
             // Iterate over forward keys. If Ok add reversal key to tracking, if error, then reverse out prior postings.
             for (pos, a) in fwd.clone().iter().enumerate() {
-                match Self::post_amounts(a.clone()) {
+                let (x, b, c, d, e, f, g) = a.clone();
+                match Self::post_amounts(todo!(), x, b, c, d, e, f, g) {
                     Ok(_) => {
                         if pos < length_limit {
                             track_rev_keys.push(reversal_keys[pos].clone())
@@ -328,22 +332,20 @@ pub mod pallet {
                     Err(_e) => {
                         // Error before the value was updated. Need to reverse-out the earlier debit amount and account combination
                         // as this has already changed in storage.
-                        for (_dummy_pos, b) in track_rev_keys.iter().enumerate() {
-                            match Self::post_amounts(b.clone()) {
-                                Ok(_) => (),
-                                Err(_e) => {
-                                    // This event is because there is a major system error in the reversal process
-                                    Self::deposit_event(RawEvent::ErrorInError());
-                                    Err(Error::<T>::SystemFailure)?;
-                                }
+                        for b in track_rev_keys.iter() {
+                            let (x, b, c, d, e, f, g) = b.clone();
+                            if let Err(_e) = Self::post_amounts(todo!(), x, b, c, d, e, f, g) {
+                                // This event is because there is a major system error in the reversal process
+                                Self::deposit_event(Event::ErrorInError());
+                                Err(Error::<T>::SystemFailure)?;
                             }
                         }
-                        Self::deposit_event(RawEvent::ErrorOverflow(a.1));
+                        Self::deposit_event(Event::ErrorOverflow(a.1));
                         Err(Error::<T>::AmountOverflow)?;
                     }
                 }
             }
-            Ok(())
+            Ok(().into())
         }
         /// This function simply returns the Totem escrow account address
         fn get_escrow_account() -> T::AccountId {
@@ -353,7 +355,7 @@ pub mod pallet {
         /// This function takes the transaction fee and prepares to account for it in accounting.
         /// This is one of the few functions that will set the ledger accounts to be updated here. Fees
         /// are native to the Substrate Framework, and there may be other use cases.
-        fn account_for_fees(fee: T::CoinAmount, payer: T::AccountId) -> DispatchResult {
+        fn account_for_fees(fee: T::CoinAmount, payer: T::AccountId) -> DispatchResultWithPostInfo {
             // Take the fee amount and convert for use with accounting. Fee is of type T::Balance which is u128.
             // As amount will always be positive, convert for use in accounting
             let fee_converted: LedgerBalance =
@@ -447,12 +449,12 @@ pub mod pallet {
             {
                 Ok(_) => (),
                 Err(_e) => {
-                    Self::deposit_event(RawEvent::ErrorPostingFees());
+                    Self::deposit_event(Event::ErrorPostingFees());
                     Err(Error::<T>::PostingToAccount)?;
                 }
             }
 
-            Ok(())
+            Ok(().into())
         }
 
         fn get_pseudo_random_hash(sender: T::AccountId, recipient: T::AccountId) -> T::Hash {
@@ -470,19 +472,13 @@ pub mod pallet {
         }
     }
 
-    decl_event!(
-        pub enum Event<T>
-        where
-            AccountId = <T as frame_system::Config>::AccountId,
-            Account = u64,
-            LedgerBalance = i128,
-            PostingIndex = u128,
-        {
-            LegderUpdate(AccountId, Account, LedgerBalance, PostingIndex),
-            ErrorOverflow(Account),
-            ErrorGlobalOverflow(),
-            ErrorInError(),
-            ErrorPostingFees(),
-        }
-    );
+    #[pallet::event]
+    #[pallet::generate_deposit(fn deposit_event)]
+    pub enum Event<T: Config> {
+        LegderUpdate(<T as frame_system::Config>::AccountId, Account, LedgerBalance, PostingIndex),
+        ErrorOverflow(Account),
+        ErrorGlobalOverflow(),
+        ErrorInError(),
+        ErrorPostingFees(),
+    }
 }
