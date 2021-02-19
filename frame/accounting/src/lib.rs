@@ -89,7 +89,7 @@ pub mod pallet {
     //codec::{Codec, Decode, Encode},
     //weights::{DispatchClass, Weight},
     //Parameter, StorageMap, StorageValue,
-    use frame_support::{codec::Codec, pallet_prelude::*};
+    use frame_support::{codec::Codec, dispatch::EncodeLike, pallet_prelude::*};
     use frame_system::pallet_prelude::*;
 
     use sp_primitives::crypto::UncheckedFrom;
@@ -98,15 +98,18 @@ pub mod pallet {
 
     /// Balance on an account can be negative
     type LedgerBalance = i128;
+
     /// General ledger account number
     type Account = u64;
-    /// 0=Debit(false) 1=Credit(true) Note: Debit and Credit balances are account specific - see chart of accounts
-    type Indicator = bool;
-    //#[derive()]
-    //enum Indicator {
-    //    Debit = 0,
-    //    Credit = 1
-    //}
+
+    /// Debit and Credit balances are account specific - see chart of accounts.
+    #[derive(Decode, Encode)]
+    pub enum Indicator {
+        Debit = 0,
+        Credit = 1,
+    }
+    impl EncodeLike<Indicator> for bool {}
+
     /// The index number for identifying the posting to ledgers
     type PostingIndex = u128;
 
