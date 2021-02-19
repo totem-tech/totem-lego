@@ -166,6 +166,8 @@ decl_storage! {
 
 decl_error! {
     pub enum Error for Module<T: Config> {
+        /// Error fetching latest posting index.
+        PostingIndexFetching,
         /// Posting index overflowed.
         PostingIndexOverflow,
         /// Balance Value overflowed.
@@ -205,21 +207,15 @@ impl<T: Config> Module<T> {
     fn post_amounts(
         (o, a, c, d, h, b, t): (T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber),
     ) -> DispatchResult {
-        let mut posting_index: PostingIndex = 0;
-        let new_balance: LedgerBalance;
-        let new_global_balance: LedgerBalance;
-
-        //TODO rewrite
-        if <PostingNumber>::exists() {
-            posting_index = Self::posting_number().ok_or("Error fetching latest posting index")?;
-            match posting_index.checked_add(1) {
-                Some(i) => posting_index = i,
-                None => {
-                    Self::deposit_event(RawEvent::ErrorGlobalOverflow());
-                    Err(Error::<T>::PostingIndexOverflow)?;
-                }
-            }
-        }
+        let posting_index = if <PostingNumber>::exists() {
+            // Get and increment the posting number
+            Self::posting_number().ok_or(Error::<T>::PostingIndexFetching)?.checked_add(1).ok_or_else(|| {
+                Self::deposit_event(RawEvent::ErrorGlobalOverflow());
+                Error::<T>::PostingIndexOverflow
+            })?
+        } else {
+            0
+        };
         let ab: LedgerBalance = c.abs();
         let balance_key = (o.clone(), a);
         let posting_key = (o.clone(), a, posting_index);
@@ -229,27 +225,16 @@ impl<T: Config> Module<T> {
         // Reversals must occur in the parent function (i.e. that calls this function).
         // As all values passed to this function are already signed +/- we only need to sum to the previous balance and check for overflow
         // Updates are only made to storage once tests below are passed for debits or credits.
-        //TODO rewrite for `?` usage
-        match Self::balance_by_ledger(&balance_key).checked_add(c) {
-            None => {
-                Self::deposit_event(RawEvent::ErrorOverflow(a));
-                Err(Error::<T>::BalanceValueOverflow)?;
-                unreachable!();
-            }
-            Some(l) => {
-                new_balance = l;
-                match Self::global_ledger(&a).checked_add(c) {
-                    Some(g) => new_global_balance = g,
-                    None => {
-                        Self::deposit_event(RawEvent::ErrorGlobalOverflow());
-                        Err(Error::<T>::GlobalBalanceValueOverflow)?;
-                        unreachable!();
-                    }
-                }
-            }
-        };
+        let new_balance = Self::balance_by_ledger(&balance_key).checked_add(c).ok_or_else(|| {
+            Self::deposit_event(RawEvent::ErrorOverflow(a));
+            Error::<T>::BalanceValueOverflow
+        })?;
+        let new_global_balance = Self::global_ledger(&a).checked_add(c).ok_or_else(|| {
+            Self::deposit_event(RawEvent::ErrorGlobalOverflow());
+            Error::<T>::GlobalBalanceValueOverflow
+        })?;
 
-        <PostingNumber>::put(posting_index);
+        PostingNumber::put(posting_index);
         <IdAccountPostingIdList<T>>::mutate(&balance_key, |id_account_posting_id_list| {
             id_account_posting_id_list.push(posting_index)
         });
@@ -257,7 +242,7 @@ impl<T: Config> Module<T> {
         <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.push(a));
         <BalanceByLedger<T>>::insert(&balance_key, new_balance);
         <PostingDetail<T>>::insert(&posting_key, detail);
-        <GlobalLedger>::insert(&a, new_global_balance);
+        GlobalLedger::insert(&a, new_global_balance);
 
         Self::deposit_event(RawEvent::LegderUpdate(o, a, c, posting_index));
 
