@@ -83,6 +83,10 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+/// Accounting abstractions.
+mod traits;
+pub use traits::Posting;
+
 use frame_support::{codec::Codec, dispatch::EncodeLike, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
@@ -90,25 +94,6 @@ use sp_arithmetic::traits::BaseArithmetic;
 use sp_primitives::crypto::UncheckedFrom;
 use sp_runtime::traits::{Convert, Hash, Member};
 use sp_std::prelude::*;
-
-/// Main Totem trait.
-pub trait Posting<AccountId, Hash, BlockNumber, CoinAmount> {
-    type Account: Member + Copy + Eq;
-    type PostingIndex: Member + Copy + Into<u128> + Encode + Decode + Eq;
-    type LedgerBalance: Member + Copy + Into<i128> + Encode + Decode + Eq;
-
-    fn handle_multiposting_amounts(
-        fwd: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-        rev: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-        trk: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-    ) -> DispatchResultWithPostInfo;
-
-    fn account_for_fees(f: CoinAmount, p: AccountId) -> DispatchResultWithPostInfo;
-
-    fn get_escrow_account() -> AccountId;
-
-    fn get_pseudo_random_hash(s: AccountId, r: AccountId) -> Hash;
-}
 
 /// Balance on an account can be negative
 pub type LedgerBalance = i128;
@@ -183,15 +168,7 @@ pub mod pallet {
 
         /// The equivalent to Balance trait to avoid cyclical dependency.
         /// This is to be used as a replacement for actual network currency.
-        type CoinAmount: Parameter
-            + Member
-            + BaseArithmetic
-            + Codec
-            + Default
-            + Copy
-            //+ Get<usize>
-            //+ Get<u64>
-            + MaybeSerializeDeserialize;
+        type CoinAmount: Parameter + Member + BaseArithmetic + Codec + Default + Copy + MaybeSerializeDeserialize;
 
         type AccountingConversions: Convert<Self::CoinAmount, LedgerBalance> + Convert<LedgerBalance, i128>;
     }
@@ -200,7 +177,9 @@ pub mod pallet {
     pub enum Error<T> {
         /// Error fetching latest posting index.
         PostingIndexFetching,
+        /// Error fetching the balance by ledger.
         BalanceByLedgerFetching,
+        /// Error fetching the global ledger.
         GlobalLedgerFetching,
         /// Posting index overflowed.
         PostingIndexOverflow,
@@ -212,8 +191,8 @@ pub mod pallet {
         SystemFailure,
         /// Overflow error, amount too big.
         AmountOverflow,
-        /// An error occured posting to accounts.
-        PostingToAccount,
+        // /// An error occured posting to accounts.
+        // PostingToAccount,
     }
 
     #[pallet::hooks]
@@ -236,10 +215,6 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         LegderUpdate(<T as frame_system::Config>::AccountId, Account, LedgerBalance, PostingIndex),
-        ErrorOverflow(Account),
-        ErrorGlobalOverflow(),
-        ErrorInError(),
-        ErrorPostingFees(),
     }
 }
 
@@ -257,10 +232,10 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResultWithPostInfo {
         let posting_index = if <PostingNumber<T>>::exists() {
             // Get and increment the posting number
-            Self::posting_number().ok_or(Error::<T>::PostingIndexFetching)?.checked_add(1).ok_or_else(|| {
-                Self::deposit_event(Event::ErrorGlobalOverflow());
-                Error::<T>::PostingIndexOverflow
-            })?
+            Self::posting_number()
+                .ok_or(Error::<T>::PostingIndexFetching)?
+                .checked_add(1)
+                .ok_or(Error::<T>::PostingIndexOverflow)?
         } else {
             0
         };
@@ -276,22 +251,17 @@ impl<T: Config> Pallet<T> {
         let new_balance = Self::balance_by_ledger(&balance_key)
             .ok_or(Error::<T>::BalanceByLedgerFetching)?
             .checked_add(c)
-            .ok_or_else(|| {
-                Self::deposit_event(Event::ErrorOverflow(a));
-                Error::<T>::BalanceValueOverflow
-            })?;
-        let new_global_balance =
-            Self::global_ledger(&a).ok_or(Error::<T>::GlobalLedgerFetching)?.checked_add(c).ok_or_else(|| {
-                Self::deposit_event(Event::ErrorGlobalOverflow());
-                Error::<T>::GlobalBalanceValueOverflow
-            })?;
+            .ok_or(Error::<T>::BalanceValueOverflow)?;
+        let new_global_balance = Self::global_ledger(&a)
+            .ok_or(Error::<T>::GlobalLedgerFetching)?
+            .checked_add(c)
+            .ok_or(Error::<T>::GlobalBalanceValueOverflow)?;
 
         <PostingNumber<T>>::put(posting_index);
-        //TODO what if `id_account_posting_id_list` is None?
-        //Same for the others
-        <IdAccountPostingIdList<T>>::mutate(&balance_key, |id_account_posting_id_list| {
-            id_account_posting_id_list.as_mut().map(|l| l.push(posting_index))
-        });
+        if let None = <IdAccountPostingIdList<T>>::mutate(&balance_key, |list| Some(list.as_mut()?.push(posting_index)))
+        {
+            // No item under the key. What should we do in this case? Same for the following lines.
+        }
         <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.retain(|h| h != &a)));
         <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.push(a)));
         <BalanceByLedger<T>>::insert(&balance_key, new_balance);
@@ -323,42 +293,39 @@ where
     fn handle_multiposting_amounts(
         fwd: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
         rev: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
-        trk: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
+        mut trk: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
     ) -> DispatchResultWithPostInfo {
-        let reversal_keys = rev.clone();
-        let mut track_rev_keys = trk.clone();
-        let length_limit = reversal_keys.len();
+        let length_limit = rev.len();
 
         // Iterate over forward keys. If Ok add reversal key to tracking, if error, then reverse out prior postings.
         for (pos, a) in fwd.clone().iter().enumerate() {
             match Self::post_amounts(a.clone()) {
                 Ok(_) => {
                     if pos < length_limit {
-                        track_rev_keys.push(reversal_keys[pos].clone())
+                        trk.push(rev[pos].clone())
                     }
                 }
                 Err(_e) => {
                     // Error before the value was updated. Need to reverse-out the earlier debit amount and account combination
                     // as this has already changed in storage.
-                    for b in track_rev_keys.iter() {
+                    for b in trk.iter() {
                         if let Err(_e) = Self::post_amounts(b.clone()) {
-                            // This event is because there is a major system error in the reversal process
-                            Self::deposit_event(Event::ErrorInError());
                             Err(Error::<T>::SystemFailure)?;
                         }
                     }
-                    Self::deposit_event(Event::ErrorOverflow(a.1));
                     Err(Error::<T>::AmountOverflow)?;
                 }
             }
         }
         Ok(().into())
     }
+
     /// This function simply returns the Totem escrow account address
     fn get_escrow_account() -> T::AccountId {
         let escrow_account: [u8; 32] = *b"TotemsEscrowAddress4LockingFunds";
         UncheckedFrom::unchecked_from(escrow_account)
     }
+
     /// This function takes the transaction fee and prepares to account for it in accounting.
     /// This is one of the few functions that will set the ledger accounts to be updated here. Fees
     /// are native to the Substrate Framework, and there may be other use cases.
@@ -447,15 +414,7 @@ where
                 2,
             );
 
-        match Self::handle_multiposting_amounts(forward_keys.clone(), reversal_keys.clone(), track_rev_keys.clone()) {
-            Ok(_) => (),
-            Err(_e) => {
-                Self::deposit_event(Event::ErrorPostingFees());
-                Err(Error::<T>::PostingToAccount)?;
-            }
-        }
-
-        Ok(().into())
+        Self::handle_multiposting_amounts(forward_keys.clone(), reversal_keys.clone(), track_rev_keys.clone())
     }
 
     fn get_pseudo_random_hash(sender: T::AccountId, recipient: T::AccountId) -> T::Hash {
@@ -463,7 +422,7 @@ where
         let input = (
             tuple,
             <frame_timestamp::Module<T>>::get(),
-            [0; 32], //TODO: sp_io::offchain::random_seed()
+            sp_io::offchain::random_seed(),
             <frame_system::Module<T>>::extrinsic_index(),
             <frame_system::Module<T>>::block_number(),
         );
