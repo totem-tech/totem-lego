@@ -129,13 +129,7 @@ pub mod pallet {
 
     #[pallet::pallet]
     #[pallet::generate_store(trait Store)]
-    // New name of `Module`:
     pub struct Pallet<T>(_);
-
-    // STORAGE:
-    // StorageValue<_, value>
-    // StorageMap<_, hasher, key, value>
-    // StorageDoubleMap<_, hasher, key, hasher, key, value, ??>
 
     #[pallet::storage]
     #[pallet::getter(fn posting_number)]
@@ -195,8 +189,8 @@ pub mod pallet {
             + Codec
             + Default
             + Copy
-            + Get<usize>
-            + Get<u64>
+            //+ Get<usize>
+            //+ Get<u64>
             + MaybeSerializeDeserialize;
 
         type AccountingConversions: Convert<Self::CoinAmount, LedgerBalance> + Convert<LedgerBalance, i128>;
@@ -310,7 +304,7 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-use pallet::*;
+pub use pallet::*;
 
 impl<T: Config> Posting<T::AccountId, T::Hash, T::BlockNumber, T::CoinAmount> for Module<T>
 where

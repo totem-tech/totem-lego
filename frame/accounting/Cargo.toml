@@ -4,7 +4,7 @@ description = 'Accounting Engine Pallet'
 edition = '2018'
 homepage = 'https://totemaccounting.com'
 license = 'GNU'
-name = 'accounting-pallet'
+name = 'pallet-accounting'
 version = '1.0.0'
 # repository = 'https://github.com/substrate-developer-hub/substrate-pallet-template/'
 
