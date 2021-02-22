@@ -83,35 +83,49 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use frame_support::{codec::Codec, dispatch::EncodeLike, pallet_prelude::*};
+use frame_system::pallet_prelude::*;
+
+use sp_arithmetic::traits::BaseArithmetic;
+use sp_primitives::crypto::UncheckedFrom;
+use sp_runtime::traits::{Convert, Hash, Member};
+use sp_std::prelude::*;
+
+/// Main Totem trait.
+pub trait Posting<AccountId, Hash, BlockNumber, CoinAmount> {
+    type Account: Member + Copy + Eq;
+    type PostingIndex: Member + Copy + Into<u128> + Encode + Decode + Eq;
+    type LedgerBalance: Member + Copy + Into<i128> + Encode + Decode + Eq;
+
+    fn handle_multiposting_amounts(
+        fwd: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
+        rev: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
+        trk: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
+    ) -> DispatchResultWithPostInfo;
+
+    fn account_for_fees(f: CoinAmount, p: AccountId) -> DispatchResultWithPostInfo;
+
+    fn get_escrow_account() -> AccountId;
+
+    fn get_pseudo_random_hash(s: AccountId, r: AccountId) -> Hash;
+}
+
+/// Balance on an account can be negative
+pub type LedgerBalance = i128;
+
+/// General ledger account number
+pub type Account = u64;
+
+/// 0=Debit(false) 1=Credit(true) Note: Debit and Credit balances are account specific - see chart of accounts
+pub type Indicator = bool;
+
+/// The index number for identifying the posting to ledgers
+pub type PostingIndex = u128;
+
 #[frame_support::pallet]
 pub mod pallet {
 
-    //codec::{Codec, Decode, Encode},
-    //weights::{DispatchClass, Weight},
-    //Parameter, StorageMap, StorageValue,
-    use frame_support::{codec::Codec, dispatch::EncodeLike, pallet_prelude::*};
-    use frame_system::pallet_prelude::*;
-
-    use sp_primitives::crypto::UncheckedFrom;
-    use sp_runtime::traits::{Convert, Hash, Member};
-    use sp_std::prelude::*;
-
-    /// Balance on an account can be negative
-    type LedgerBalance = i128;
-
-    /// General ledger account number
-    type Account = u64;
-
-    /// Debit and Credit balances are account specific - see chart of accounts.
-    #[derive(Decode, Encode)]
-    pub enum Indicator {
-        Debit = 0,
-        Credit = 1,
-    }
-    impl EncodeLike<Indicator> for bool {}
-
-    /// The index number for identifying the posting to ledgers
-    type PostingIndex = u128;
+    use super::*;
 
     #[pallet::pallet]
     #[pallet::generate_store(trait Store)]
@@ -177,31 +191,15 @@ pub mod pallet {
         /// This is to be used as a replacement for actual network currency.
         type CoinAmount: Parameter
             + Member
-            //+ SimpleArithmetic
+            + BaseArithmetic
             + Codec
             + Default
             + Copy
-            //+ As<usize>
-            //+ As<u64>
             + Get<usize>
             + Get<u64>
             + MaybeSerializeDeserialize;
 
         type AccountingConversions: Convert<Self::CoinAmount, LedgerBalance> + Convert<LedgerBalance, i128>;
-    }
-
-    pub trait Posting<AccountId, Hash, BlockNumber, CoinAmount> {
-        type Account: Member + Copy + Eq;
-        type PostingIndex: Member + Copy + Into<u128> + Encode + Decode + Eq;
-        type LedgerBalance: Member + Copy + Into<i128> + Encode + Decode + Eq;
-        fn handle_multiposting_amounts(
-            fwd: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-            rev: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-            trk: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-        ) -> DispatchResultWithPostInfo;
-        fn account_for_fees(f: CoinAmount, p: AccountId) -> DispatchResultWithPostInfo;
-        fn get_escrow_account() -> AccountId;
-        fn get_pseudo_random_hash(s: AccountId, r: AccountId) -> Hash;
     }
 
     #[pallet::error]
@@ -225,263 +223,257 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    // for enum Call where origin: T::Origin ← what should I do with that?
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Basic posting function (warning! can cause imbalance if not called with corresponding debit or credit entries)
-        /// The reason why this is a simple function is that (for example) one debit posting may correspond with one or many credit
-        /// postings and vice-versa. For example a debit to Accounts Receivable is the gross invoice amount, which could correspond with
-        /// a credit to liabilities for the sales tax amount and a credit to revenue for the net invoice amount. The sum of both credits being
-        /// equal to the single debit in accounts receivable, but only one posting needs to be made to that account, and two posting for the others.
-        /// The Totem Accounting Recipes are constructed using this simple function.
-        /// The second Blocknumber is for re-targeting the entry in the accounts, i.e. for adjustments prior to or after the current period (generally accruals).
         #[pallet::weight(0/*TODO*/)]
-        fn post_amounts(
-            origin: OriginFor<T>,
-            //TODO: give an explicit name to those variables:
-            o: T::AccountId, //TODO: is this the origin?
-            a: Account,
-            c: LedgerBalance,
-            d: bool,
-            h: T::Hash,
-            b: T::BlockNumber,
-            t: T::BlockNumber,
-        ) -> DispatchResultWithPostInfo {
-            let posting_index = if <PostingNumber<T>>::exists() {
-                // Get and increment the posting number
-                Self::posting_number().ok_or(Error::<T>::PostingIndexFetching)?.checked_add(1).ok_or_else(|| {
-                    Self::deposit_event(Event::ErrorGlobalOverflow());
-                    Error::<T>::PostingIndexOverflow
-                })?
-            } else {
-                0
-            };
-            let ab: LedgerBalance = c.abs();
-            let balance_key = (o.clone(), a);
-            let posting_key = (o.clone(), a, posting_index);
-            let detail = (b, ab, d, h, t);
-            // !! Warning !!
-            // Values could feasibly overflow, with no visibility on other accounts. In this event this function returns an error.
-            // Reversals must occur in the parent function (i.e. that calls this function).
-            // As all values passed to this function are already signed +/- we only need to sum to the previous balance and check for overflow
-            // Updates are only made to storage once tests below are passed for debits or credits.
-            let new_balance = Self::balance_by_ledger(&balance_key)
-                .ok_or(Error::<T>::BalanceByLedgerFetching)?
-                .checked_add(c)
-                .ok_or_else(|| {
-                    Self::deposit_event(Event::ErrorOverflow(a));
-                    Error::<T>::BalanceValueOverflow
-                })?;
-            let new_global_balance =
-                Self::global_ledger(&a).ok_or(Error::<T>::GlobalLedgerFetching)?.checked_add(c).ok_or_else(|| {
-                    Self::deposit_event(Event::ErrorGlobalOverflow());
-                    Error::<T>::GlobalBalanceValueOverflow
-                })?;
-
-            <PostingNumber<T>>::put(posting_index);
-            //TODO what if `id_account_posting_id_list` is None?
-            //Same for the others
-            <IdAccountPostingIdList<T>>::mutate(&balance_key, |id_account_posting_id_list| {
-                id_account_posting_id_list.as_mut().map(|l| l.push(posting_index))
-            });
-            <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.retain(|h| h != &a)));
-            <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.push(a)));
-            <BalanceByLedger<T>>::insert(&balance_key, new_balance);
-            <PostingDetail<T>>::insert(&posting_key, Some(detail));
-            <GlobalLedger<T>>::insert(&a, new_global_balance);
-
-            Self::deposit_event(Event::LegderUpdate(o, a, c, posting_index));
-
-            Ok(().into())
-        }
-    }
-
-    impl<T: Config> Posting<T::AccountId, T::Hash, T::BlockNumber, T::CoinAmount> for Module<T>
-    where
-        T::AccountId: UncheckedFrom<[u8; 32]>,
-    {
-        type Account = Account;
-        type LedgerBalance = LedgerBalance;
-        type PostingIndex = PostingIndex;
-
-        /// The Totem Accounting Recipes are constructed using this function which handles posting to multiple accounts.
-        /// It is exposed to other modules as a trait
-        /// If for whatever reason an error occurs during the storage processing which is sequential
-        /// this function also handles reversing out the prior accounting entries
-        /// Therefore the recipes that are passed as arguments need to be be accompanied with a reversal
-        /// Obviously the last posting does not need a reversal for if it errors, then it was not posted in the first place.
-        fn handle_multiposting_amounts(
-            // o: <T as frame_system::Config>::AccountId,
-            // o: T::AccountId,
-            fwd: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
-            rev: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
-            trk: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
-        ) -> DispatchResultWithPostInfo {
-            let reversal_keys = rev.clone();
-            let mut track_rev_keys = trk.clone();
-            let length_limit = reversal_keys.len();
-
-            // Iterate over forward keys. If Ok add reversal key to tracking, if error, then reverse out prior postings.
-            for (pos, a) in fwd.clone().iter().enumerate() {
-                let (x, b, c, d, e, f, g) = a.clone();
-                match Self::post_amounts(todo!(), x, b, c, d, e, f, g) {
-                    Ok(_) => {
-                        if pos < length_limit {
-                            track_rev_keys.push(reversal_keys[pos].clone())
-                        };
-                    }
-                    Err(_e) => {
-                        // Error before the value was updated. Need to reverse-out the earlier debit amount and account combination
-                        // as this has already changed in storage.
-                        for b in track_rev_keys.iter() {
-                            let (x, b, c, d, e, f, g) = b.clone();
-                            if let Err(_e) = Self::post_amounts(todo!(), x, b, c, d, e, f, g) {
-                                // This event is because there is a major system error in the reversal process
-                                Self::deposit_event(Event::ErrorInError());
-                                Err(Error::<T>::SystemFailure)?;
-                            }
-                        }
-                        Self::deposit_event(Event::ErrorOverflow(a.1));
-                        Err(Error::<T>::AmountOverflow)?;
-                    }
-                }
-            }
-            Ok(().into())
-        }
-        /// This function simply returns the Totem escrow account address
-        fn get_escrow_account() -> T::AccountId {
-            let escrow_account: [u8; 32] = *b"TotemsEscrowAddress4LockingFunds";
-            UncheckedFrom::unchecked_from(escrow_account)
-        }
-        /// This function takes the transaction fee and prepares to account for it in accounting.
-        /// This is one of the few functions that will set the ledger accounts to be updated here. Fees
-        /// are native to the Substrate Framework, and there may be other use cases.
-        fn account_for_fees(fee: T::CoinAmount, payer: T::AccountId) -> DispatchResultWithPostInfo {
-            // Take the fee amount and convert for use with accounting. Fee is of type T::Balance which is u128.
-            // As amount will always be positive, convert for use in accounting
-            let fee_converted: LedgerBalance =
-                <T::AccountingConversions as Convert<T::CoinAmount, LedgerBalance>>::convert(fee);
-            // Convert this for the inversion
-            let mut to_invert: LedgerBalance = fee_converted.clone();
-            to_invert = to_invert * -1;
-            let increase_amount: LedgerBalance = fee_converted.into();
-            let decrease_amount: LedgerBalance = to_invert.into();
-
-            let account_1: Account = 250500290000000u64; // debit  increase 250500290000000 Totem Transaction Fees
-            let account_2: Account = 110100040000000u64; // credit decrease 110100040000000 XTX Balance
-
-            // This sets the change block and the applicable posting period. For this context they will always be
-            // the same.
-            let current_block = <frame_system::Module<T>>::block_number(); // For audit on change
-            let current_block_dupe = current_block.clone(); // Applicable period for accounting
-
-            // Generate dummy Hash reference (it has no real bearing but allows posting to happen)
-            let fee_hash: T::Hash = Self::get_pseudo_random_hash(payer.clone(), payer.clone());
-
-            // Keys for posting
-            let mut forward_keys = Vec::<(
-                T::AccountId,
-                Account,
-                LedgerBalance,
-                bool,
-                T::Hash,
-                T::BlockNumber,
-                T::BlockNumber,
-            )>::with_capacity(3);
-            forward_keys.push((
-                payer.clone(),
-                account_1,
-                increase_amount,
-                true,
-                fee_hash,
-                current_block,
-                current_block_dupe,
-            ));
-            forward_keys.push((
-                payer.clone(),
-                account_2,
-                decrease_amount,
-                false,
-                fee_hash,
-                current_block,
-                current_block_dupe,
-            ));
-
-            // Reversal keys in case of errors
-            let mut reversal_keys = Vec::<(
-                T::AccountId,
-                Account,
-                LedgerBalance,
-                bool,
-                T::Hash,
-                T::BlockNumber,
-                T::BlockNumber,
-            )>::with_capacity(2);
-            reversal_keys.push((
-                payer.clone(),
-                account_1,
-                decrease_amount,
-                false,
-                fee_hash,
-                current_block,
-                current_block_dupe,
-            ));
-            reversal_keys.push((
-                payer.clone(),
-                account_2,
-                increase_amount,
-                true,
-                fee_hash,
-                current_block,
-                current_block_dupe,
-            ));
-
-            let track_rev_keys = Vec::<(
-                T::AccountId,
-                Account,
-                LedgerBalance,
-                bool,
-                T::Hash,
-                T::BlockNumber,
-                T::BlockNumber,
-            )>::with_capacity(2);
-
-            match Self::handle_multiposting_amounts(forward_keys.clone(), reversal_keys.clone(), track_rev_keys.clone())
-            {
-                Ok(_) => (),
-                Err(_e) => {
-                    Self::deposit_event(Event::ErrorPostingFees());
-                    Err(Error::<T>::PostingToAccount)?;
-                }
-            }
-
-            Ok(().into())
+        fn opening_balance(_origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            todo!()
         }
 
-        fn get_pseudo_random_hash(sender: T::AccountId, recipient: T::AccountId) -> T::Hash {
-            let tuple = (sender, recipient);
-            let input = (
-                tuple,
-                <frame_timestamp::Module<T>>::get(),
-                //<frame_system::Module<T>>::random_seed(),
-                todo!("Temporary hack to make the crate compile, so that I can experiment with other things"),
-                <frame_system::Module<T>>::extrinsic_index(),
-                <frame_system::Module<T>>::block_number(),
-            );
-            todo!();
-            //T::Hashing::hash(input.encode().as_slice()) // default hash BlakeTwo256
+        #[pallet::weight(0/*TODO*/)]
+        fn adjustment(_origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            todo!()
         }
     }
 
     #[pallet::event]
-    #[pallet::generate_deposit(fn deposit_event)]
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         LegderUpdate(<T as frame_system::Config>::AccountId, Account, LedgerBalance, PostingIndex),
         ErrorOverflow(Account),
         ErrorGlobalOverflow(),
         ErrorInError(),
         ErrorPostingFees(),
+    }
+}
+
+impl<T: Config> Pallet<T> {
+    /// Basic posting function (warning! can cause imbalance if not called with corresponding debit or credit entries)
+    /// The reason why this is a simple function is that (for example) one debit posting may correspond with one or many credit
+    /// postings and vice-versa. For example a debit to Accounts Receivable is the gross invoice amount, which could correspond with
+    /// a credit to liabilities for the sales tax amount and a credit to revenue for the net invoice amount. The sum of both credits being
+    /// equal to the single debit in accounts receivable, but only one posting needs to be made to that account, and two posting for the others.
+    /// The Totem Accounting Recipes are constructed using this simple function.
+    /// The second Blocknumber is for re-targeting the entry in the accounts, i.e. for adjustments prior to or after the current period (generally accruals).
+    fn post_amounts(
+        //TODO: give an explicit name to those variables:
+        (o, a, c, d, h, b, t): (T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber),
+    ) -> DispatchResultWithPostInfo {
+        let posting_index = if <PostingNumber<T>>::exists() {
+            // Get and increment the posting number
+            Self::posting_number().ok_or(Error::<T>::PostingIndexFetching)?.checked_add(1).ok_or_else(|| {
+                Self::deposit_event(Event::ErrorGlobalOverflow());
+                Error::<T>::PostingIndexOverflow
+            })?
+        } else {
+            0
+        };
+        let ab: LedgerBalance = c.abs();
+        let balance_key = (o.clone(), a);
+        let posting_key = (o.clone(), a, posting_index);
+        let detail = (b, ab, d, h, t);
+        // !! Warning !!
+        // Values could feasibly overflow, with no visibility on other accounts. In this event this function returns an error.
+        // Reversals must occur in the parent function (i.e. that calls this function).
+        // As all values passed to this function are already signed +/- we only need to sum to the previous balance and check for overflow
+        // Updates are only made to storage once tests below are passed for debits or credits.
+        let new_balance = Self::balance_by_ledger(&balance_key)
+            .ok_or(Error::<T>::BalanceByLedgerFetching)?
+            .checked_add(c)
+            .ok_or_else(|| {
+                Self::deposit_event(Event::ErrorOverflow(a));
+                Error::<T>::BalanceValueOverflow
+            })?;
+        let new_global_balance =
+            Self::global_ledger(&a).ok_or(Error::<T>::GlobalLedgerFetching)?.checked_add(c).ok_or_else(|| {
+                Self::deposit_event(Event::ErrorGlobalOverflow());
+                Error::<T>::GlobalBalanceValueOverflow
+            })?;
+
+        <PostingNumber<T>>::put(posting_index);
+        //TODO what if `id_account_posting_id_list` is None?
+        //Same for the others
+        <IdAccountPostingIdList<T>>::mutate(&balance_key, |id_account_posting_id_list| {
+            id_account_posting_id_list.as_mut().map(|l| l.push(posting_index))
+        });
+        <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.retain(|h| h != &a)));
+        <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.push(a)));
+        <BalanceByLedger<T>>::insert(&balance_key, new_balance);
+        <PostingDetail<T>>::insert(&posting_key, Some(detail));
+        <GlobalLedger<T>>::insert(&a, new_global_balance);
+
+        Self::deposit_event(Event::LegderUpdate(o, a, c, posting_index));
+
+        Ok(().into())
+    }
+}
+
+use pallet::*;
+
+impl<T: Config> Posting<T::AccountId, T::Hash, T::BlockNumber, T::CoinAmount> for Module<T>
+where
+    T::AccountId: UncheckedFrom<[u8; 32]>,
+{
+    type Account = Account;
+    type LedgerBalance = LedgerBalance;
+    type PostingIndex = PostingIndex;
+
+    /// The Totem Accounting Recipes are constructed using this function which handles posting to multiple accounts.
+    /// It is exposed to other modules as a trait
+    /// If for whatever reason an error occurs during the storage processing which is sequential
+    /// this function also handles reversing out the prior accounting entries
+    /// Therefore the recipes that are passed as arguments need to be be accompanied with a reversal
+    /// Obviously the last posting does not need a reversal for if it errors, then it was not posted in the first place.
+    fn handle_multiposting_amounts(
+        fwd: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
+        rev: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
+        trk: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
+    ) -> DispatchResultWithPostInfo {
+        let reversal_keys = rev.clone();
+        let mut track_rev_keys = trk.clone();
+        let length_limit = reversal_keys.len();
+
+        // Iterate over forward keys. If Ok add reversal key to tracking, if error, then reverse out prior postings.
+        for (pos, a) in fwd.clone().iter().enumerate() {
+            match Self::post_amounts(a.clone()) {
+                Ok(_) => {
+                    if pos < length_limit {
+                        track_rev_keys.push(reversal_keys[pos].clone())
+                    }
+                }
+                Err(_e) => {
+                    // Error before the value was updated. Need to reverse-out the earlier debit amount and account combination
+                    // as this has already changed in storage.
+                    for b in track_rev_keys.iter() {
+                        if let Err(_e) = Self::post_amounts(b.clone()) {
+                            // This event is because there is a major system error in the reversal process
+                            Self::deposit_event(Event::ErrorInError());
+                            Err(Error::<T>::SystemFailure)?;
+                        }
+                    }
+                    Self::deposit_event(Event::ErrorOverflow(a.1));
+                    Err(Error::<T>::AmountOverflow)?;
+                }
+            }
+        }
+        Ok(().into())
+    }
+    /// This function simply returns the Totem escrow account address
+    fn get_escrow_account() -> T::AccountId {
+        let escrow_account: [u8; 32] = *b"TotemsEscrowAddress4LockingFunds";
+        UncheckedFrom::unchecked_from(escrow_account)
+    }
+    /// This function takes the transaction fee and prepares to account for it in accounting.
+    /// This is one of the few functions that will set the ledger accounts to be updated here. Fees
+    /// are native to the Substrate Framework, and there may be other use cases.
+    fn account_for_fees(fee: T::CoinAmount, payer: T::AccountId) -> DispatchResultWithPostInfo {
+        // Take the fee amount and convert for use with accounting. Fee is of type T::Balance which is u128.
+        // As amount will always be positive, convert for use in accounting
+        let fee_converted: LedgerBalance =
+            <T::AccountingConversions as Convert<T::CoinAmount, LedgerBalance>>::convert(fee);
+        // Convert this for the inversion
+        let mut to_invert: LedgerBalance = fee_converted.clone();
+        to_invert = to_invert * -1;
+        let increase_amount: LedgerBalance = fee_converted.into();
+        let decrease_amount: LedgerBalance = to_invert.into();
+
+        let account_1: Account = 250500290000000u64; // debit  increase 250500290000000 Totem Transaction Fees
+        let account_2: Account = 110100040000000u64; // credit decrease 110100040000000 XTX Balance
+
+        // This sets the change block and the applicable posting period. For this context they will always be
+        // the same.
+        let current_block = <frame_system::Module<T>>::block_number(); // For audit on change
+        let current_block_dupe = current_block.clone(); // Applicable period for accounting
+
+        // Generate dummy Hash reference (it has no real bearing but allows posting to happen)
+        let fee_hash: T::Hash = Self::get_pseudo_random_hash(payer.clone(), payer.clone());
+
+        // Keys for posting
+        let mut forward_keys = Vec::<(
+            T::AccountId,
+            Account,
+            LedgerBalance,
+            bool,
+            T::Hash,
+            T::BlockNumber,
+            T::BlockNumber,
+        )>::with_capacity(3);
+        forward_keys.push((
+            payer.clone(),
+            account_1,
+            increase_amount,
+            true,
+            fee_hash,
+            current_block,
+            current_block_dupe,
+        ));
+        forward_keys.push((
+            payer.clone(),
+            account_2,
+            decrease_amount,
+            false,
+            fee_hash,
+            current_block,
+            current_block_dupe,
+        ));
+
+        // Reversal keys in case of errors
+        let mut reversal_keys = Vec::<(
+            T::AccountId,
+            Account,
+            LedgerBalance,
+            bool,
+            T::Hash,
+            T::BlockNumber,
+            T::BlockNumber,
+        )>::with_capacity(2);
+        reversal_keys.push((
+            payer.clone(),
+            account_1,
+            decrease_amount,
+            false,
+            fee_hash,
+            current_block,
+            current_block_dupe,
+        ));
+        reversal_keys.push((
+            payer.clone(),
+            account_2,
+            increase_amount,
+            true,
+            fee_hash,
+            current_block,
+            current_block_dupe,
+        ));
+
+        let track_rev_keys =
+            Vec::<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>::with_capacity(
+                2,
+            );
+
+        match Self::handle_multiposting_amounts(forward_keys.clone(), reversal_keys.clone(), track_rev_keys.clone()) {
+            Ok(_) => (),
+            Err(_e) => {
+                Self::deposit_event(Event::ErrorPostingFees());
+                Err(Error::<T>::PostingToAccount)?;
+            }
+        }
+
+        Ok(().into())
+    }
+
+    fn get_pseudo_random_hash(sender: T::AccountId, recipient: T::AccountId) -> T::Hash {
+        let tuple = (sender, recipient);
+        let input = (
+            tuple,
+            <frame_timestamp::Module<T>>::get(),
+            [0; 32], //TODO: sp_io::offchain::random_seed()
+            <frame_system::Module<T>>::extrinsic_index(),
+            <frame_system::Module<T>>::block_number(),
+        );
+
+        T::Hashing::hash(input.encode().as_slice()) // default hash BlakeTwo256
     }
 }
