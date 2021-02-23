@@ -24,3 +24,4 @@ rls*.log
 .cargo/
 .cargo-remote.toml
 .maintain/node_runtime.wasm
+*.bin
