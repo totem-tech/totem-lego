@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2017-2020 Parity Technologies (UK) Ltd.
+// Copyright (C) 2017-2021 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
 
 // This program is free software: you can redistribute it and/or modify
@@ -31,16 +31,21 @@
 //! # };
 //! # use sc_transaction_pool::{BasicPool, FullChainApi};
 //! # let client = Arc::new(substrate_test_runtime_client::new());
-//! # let spawner = sp_core::testing::SpawnBlockingExecutor::new();
+//! # let spawner = sp_core::testing::TaskExecutor::new();
 //! # let txpool = BasicPool::new_full(
 //! #     Default::default(),
-//! #     Arc::new(FullChainApi::new(client.clone(), None)),
+//! #     true.into(),
 //! #     None,
-//! #     spawner,
+//! #     spawner.clone(),
 //! #     client.clone(),
 //! # );
 //! // The first step is to create a `ProposerFactory`.
-//! let mut proposer_factory = ProposerFactory::new(client.clone(), txpool.clone(), None);
+//! let mut proposer_factory = ProposerFactory::new(
+//!		spawner,
+//!		client.clone(),
+//!		txpool.clone(),
+//!		None,
+//!	);
 //!
 //! // From this factory, we create a `Proposer`.
 //! let proposer = proposer_factory.init(
@@ -67,4 +72,4 @@
 
 mod basic_authorship;
 
-pub use crate::basic_authorship::{ProposerFactory, Proposer};
+pub use crate::basic_authorship::{ProposerFactory, Proposer, DEFAULT_MAX_BLOCK_SIZE};

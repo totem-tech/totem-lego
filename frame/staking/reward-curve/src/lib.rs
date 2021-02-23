@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2017-2020 Parity Technologies (UK) Ltd.
+// Copyright (C) 2017-2021 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,7 @@ use syn::parse::{Parse, ParseStream};
 
 /// Accepts a number of expressions to create a instance of PiecewiseLinear which represents the
 /// NPoS curve (as detailed
-/// [here](http://research.web3.foundation/en/latest/polkadot/Token%20Economics/#inflation-model))
+/// [here](https://research.web3.foundation/en/latest/polkadot/Token%20Economics.html#inflation-model))
 /// for those parameters. Parameters are:
 /// - `min_inflation`: the minimal amount to be rewarded between validators, expressed as a fraction
 ///   of total issuance. Known as `I_0` in the literature.
@@ -353,13 +353,13 @@ fn generate_piecewise_linear(points: Vec<(u32, u32)>) -> TokenStream2 {
 		.unwrap_or(1_000_000_000);
 
 	for (x, y) in points {
-		let error = || panic!(format!(
+		let error = || panic!(
 			"Generated reward curve approximation doesn't fit into [0, 1] -> [0, 1] \
 			because of point:
 			x = {:07} per million
 			y = {:07} per million",
 			x, y
-		));
+		);
 
 		let x_perbill = x.checked_mul(1_000).unwrap_or_else(error);
 		let y_perbill = y.checked_mul(1_000).unwrap_or_else(error);

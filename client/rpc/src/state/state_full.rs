@@ -1,18 +1,20 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
 // This file is part of Substrate.
 
-// Substrate is free software: you can redistribute it and/or modify
+// Copyright (C) 2019-2021 Parity Technologies (UK) Ltd.
+// SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
+
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// Substrate is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with Substrate.  If not, see <http://www.gnu.org/licenses/>.
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 //! State API backend for full nodes.
 
@@ -221,9 +223,9 @@ impl<BE, Block, Client> StateBackend<Block, Client> for FullState<BE, Block, Cli
 	BE: Backend<Block> + 'static,
 	Client: ExecutorProvider<Block> + StorageProvider<Block, BE> + ProofProvider<Block> + HeaderBackend<Block>
 		+ HeaderMetadata<Block, Error = sp_blockchain::Error> + BlockchainEvents<Block>
-		+ CallApiAt<Block, Error = sp_blockchain::Error> + ProvideRuntimeApi<Block>
+		+ CallApiAt<Block> + ProvideRuntimeApi<Block>
 		+ Send + Sync + 'static,
-	Client::Api: Metadata<Block, Error = sp_blockchain::Error>,
+	Client::Api: Metadata<Block>,
 {
 	fn call(
 		&self,
@@ -298,6 +300,36 @@ impl<BE, Block, Client> StateBackend<Block, Client> for FullState<BE, Block, Cli
 				.map_err(client_err)))
 	}
 
+	fn storage_size(
+		&self,
+		block: Option<Block::Hash>,
+		key: StorageKey,
+	) -> FutureResult<Option<u64>> {
+		let block = match self.block_or_best(block) {
+			Ok(b) => b,
+			Err(e) => return Box::new(result(Err(client_err(e)))),
+		};
+
+		match self.client.storage(&BlockId::Hash(block), &key) {
+			Ok(Some(d)) => return Box::new(result(Ok(Some(d.0.len() as u64)))),
+			Err(e) => return Box::new(result(Err(client_err(e)))),
+			Ok(None) => {},
+		}
+
+		Box::new(result(
+			self.client.storage_pairs(&BlockId::Hash(block), &key)
+				.map(|kv| {
+					let item_sum = kv.iter().map(|(_, v)| v.0.len() as u64).sum::<u64>();
+					if item_sum > 0 {
+						Some(item_sum)
+					} else {
+						None
+					}
+				})
+				.map_err(client_err)
+		))
+	}
+
 	fn storage_hash(
 		&self,
 		block: Option<Block::Hash>,
@@ -312,17 +344,23 @@ impl<BE, Block, Client> StateBackend<Block, Client> for FullState<BE, Block, Cli
 	fn metadata(&self, block: Option<Block::Hash>) -> FutureResult<Bytes> {
 		Box::new(result(
 			self.block_or_best(block)
+				.map_err(client_err)
 				.and_then(|block|
-					self.client.runtime_api().metadata(&BlockId::Hash(block)).map(Into::into)
-				)
-				.map_err(client_err)))
+					self.client.runtime_api().metadata(&BlockId::Hash(block))
+						.map(Into::into)
+						.map_err(|e| Error::Client(Box::new(e))))
+		))
 	}
 
 	fn runtime_version(&self, block: Option<Block::Hash>) -> FutureResult<RuntimeVersion> {
 		Box::new(result(
 			self.block_or_best(block)
-				.and_then(|block| self.client.runtime_version_at(&BlockId::Hash(block)))
-				.map_err(client_err)))
+				.map_err(client_err)
+				.and_then(|block|
+					self.client.runtime_version_at(&BlockId::Hash(block))
+						.map_err(|e| Error::Client(Box::new(e)))
+				)
+		))
 	}
 
 	fn query_storage(
@@ -373,7 +411,7 @@ impl<BE, Block, Client> StateBackend<Block, Client> for FullState<BE, Block, Cli
 
 	fn subscribe_runtime_version(
 		&self,
-		_meta: crate::metadata::Metadata,
+		_meta: crate::Metadata,
 		subscriber: Subscriber<RuntimeVersion>,
 	) {
 		let stream = match self.client.storage_changes_notification_stream(
@@ -400,7 +438,7 @@ impl<BE, Block, Client> StateBackend<Block, Client> for FullState<BE, Block, Cli
 					let info = client.info();
 					let version = client
 						.runtime_version_at(&BlockId::hash(info.best_hash))
-						.map_err(client_err)
+						.map_err(|e| Error::Client(Box::new(e)))
 						.map_err(Into::into);
 					if previous_version != version {
 						previous_version = version.clone();
@@ -424,7 +462,7 @@ impl<BE, Block, Client> StateBackend<Block, Client> for FullState<BE, Block, Cli
 
 	fn unsubscribe_runtime_version(
 		&self,
-		_meta: Option<crate::metadata::Metadata>,
+		_meta: Option<crate::Metadata>,
 		id: SubscriptionId,
 	) -> RpcResult<bool> {
 		Ok(self.subscriptions.cancel(id))
@@ -432,7 +470,7 @@ impl<BE, Block, Client> StateBackend<Block, Client> for FullState<BE, Block, Cli
 
 	fn subscribe_storage(
 		&self,
-		_meta: crate::metadata::Metadata,
+		_meta: crate::Metadata,
 		subscriber: Subscriber<StorageChangeSet<Block::Hash>>,
 		keys: Option<Vec<StorageKey>>,
 	) {
@@ -484,7 +522,7 @@ impl<BE, Block, Client> StateBackend<Block, Client> for FullState<BE, Block, Cli
 
 	fn unsubscribe_storage(
 		&self,
-		_meta: Option<crate::metadata::Metadata>,
+		_meta: Option<crate::Metadata>,
 		id: SubscriptionId,
 	) -> RpcResult<bool> {
 		Ok(self.subscriptions.cancel(id))
@@ -496,9 +534,9 @@ impl<BE, Block, Client> ChildStateBackend<Block, Client> for FullState<BE, Block
 	BE: Backend<Block> + 'static,
 	Client: ExecutorProvider<Block> + StorageProvider<Block, BE> + HeaderBackend<Block>
 		+ HeaderMetadata<Block, Error = sp_blockchain::Error> + BlockchainEvents<Block>
-		+ CallApiAt<Block, Error = sp_blockchain::Error> + ProvideRuntimeApi<Block>
+		+ CallApiAt<Block> + ProvideRuntimeApi<Block>
 		+ Send + Sync + 'static,
-	Client::Api: Metadata<Block, Error = sp_blockchain::Error>,
+	Client::Api: Metadata<Block>,
 {
 	fn storage_keys(
 		&self,
@@ -511,7 +549,7 @@ impl<BE, Block, Client> ChildStateBackend<Block, Client> for FullState<BE, Block
 				.and_then(|block| {
 					let child_info = match ChildType::from_prefixed_key(&storage_key) {
 						Some((ChildType::ParentKeyId, storage_key)) => ChildInfo::new_default(storage_key),
-						None => return Err("Invalid child storage key".into()),
+						None => return Err(sp_blockchain::Error::InvalidChildStorageKey),
 					};
 					self.client.child_storage_keys(
 						&BlockId::Hash(block),
@@ -533,7 +571,7 @@ impl<BE, Block, Client> ChildStateBackend<Block, Client> for FullState<BE, Block
 				.and_then(|block| {
 					let child_info = match ChildType::from_prefixed_key(&storage_key) {
 						Some((ChildType::ParentKeyId, storage_key)) => ChildInfo::new_default(storage_key),
-						None => return Err("Invalid child storage key".into()),
+						None => return Err(sp_blockchain::Error::InvalidChildStorageKey),
 					};
 					self.client.child_storage(
 						&BlockId::Hash(block),
@@ -555,7 +593,7 @@ impl<BE, Block, Client> ChildStateBackend<Block, Client> for FullState<BE, Block
 				.and_then(|block| {
 					let child_info = match ChildType::from_prefixed_key(&storage_key) {
 						Some((ChildType::ParentKeyId, storage_key)) => ChildInfo::new_default(storage_key),
-						None => return Err("Invalid child storage key".into()),
+						None => return Err(sp_blockchain::Error::InvalidChildStorageKey),
 					};
 					self.client.child_storage_hash(
 						&BlockId::Hash(block),

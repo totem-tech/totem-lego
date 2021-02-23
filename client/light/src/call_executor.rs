@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2017-2020 Parity Technologies (UK) Ltd.
+// Copyright (C) 2017-2021 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
 
 // This program is free software: you can redistribute it and/or modify
@@ -23,14 +23,16 @@ use std::{
 };
 
 use codec::{Encode, Decode};
-use sp_core::{convert_hash, NativeOrEncoded, traits::CodeExecutor, offchain::storage::OffchainOverlayedChanges};
+use sp_core::{
+	convert_hash, NativeOrEncoded, traits::{CodeExecutor, SpawnNamed},
+};
 use sp_runtime::{
 	generic::BlockId, traits::{One, Block as BlockT, Header as HeaderT, HashFor},
 };
 use sp_externalities::Extensions;
 use sp_state_machine::{
 	self, Backend as StateBackend, OverlayedChanges, ExecutionStrategy, create_proof_check_backend,
-	execution_proof_check_on_trie_backend, ExecutionManager, StorageProof, CloneableSpawn,
+	execution_proof_check_on_trie_backend, ExecutionManager, StorageProof,
 };
 use hash_db::Hasher;
 
@@ -102,7 +104,7 @@ impl<Block, B, Local> CallExecutor<Block> for
 			Result<NativeOrEncoded<R>, Self::Error>
 		) -> Result<NativeOrEncoded<R>, Self::Error>,
 		R: Encode + Decode + PartialEq,
-		NC: FnOnce() -> result::Result<R, String> + UnwindSafe,
+		NC: FnOnce() -> result::Result<R, sp_api::ApiError> + UnwindSafe,
 	>(
 		&self,
 		initialize_block_fn: IB,
@@ -110,7 +112,6 @@ impl<Block, B, Local> CallExecutor<Block> for
 		method: &str,
 		call_data: &[u8],
 		changes: &RefCell<OverlayedChanges>,
-		offchain_changes: &RefCell<OffchainOverlayedChanges>,
 		_: Option<&RefCell<StorageTransactionCache<Block, B::State>>>,
 		initialize_block: InitializeBlock<'a, Block>,
 		_manager: ExecutionManager<EM>,
@@ -137,7 +138,6 @@ impl<Block, B, Local> CallExecutor<Block> for
 				method,
 				call_data,
 				changes,
-				offchain_changes,
 				None,
 				initialize_block,
 				ExecutionManager::NativeWhenPossible,
@@ -220,7 +220,7 @@ pub fn prove_execution<Block, S, E>(
 /// Proof should include both environment preparation proof and method execution proof.
 pub fn check_execution_proof<Header, E, H>(
 	executor: &E,
-	spawn_handle: Box<dyn CloneableSpawn>,
+	spawn_handle: Box<dyn SpawnNamed>,
 	request: &RemoteCallRequest<Header>,
 	remote_proof: StorageProof,
 ) -> ClientResult<Vec<u8>>
@@ -251,7 +251,7 @@ pub fn check_execution_proof<Header, E, H>(
 /// Proof should include both environment preparation proof and method execution proof.
 pub fn check_execution_proof_with_make_header<Header, E, H, MakeNextHeader>(
 	executor: &E,
-	spawn_handle: Box<dyn CloneableSpawn>,
+	spawn_handle: Box<dyn SpawnNamed>,
 	request: &RemoteCallRequest<Header>,
 	remote_proof: StorageProof,
 	make_next_header: MakeNextHeader,
@@ -273,9 +273,10 @@ pub fn check_execution_proof_with_make_header<Header, E, H, MakeNextHeader>(
 
 	// TODO: Remove when solved: https://github.com/paritytech/substrate/issues/5047
 	let backend_runtime_code = sp_state_machine::backend::BackendRuntimeCode::new(&trie_backend);
-	let runtime_code = backend_runtime_code.runtime_code()?;
+	let runtime_code = backend_runtime_code.runtime_code()
+		.map_err(|_e| ClientError::RuntimeCodeMissing)?;
 
-	execution_proof_check_on_trie_backend::<H, Header::Number, _>(
+	execution_proof_check_on_trie_backend::<H, Header::Number, _, _>(
 		&trie_backend,
 		&mut changes,
 		executor,
@@ -286,7 +287,7 @@ pub fn check_execution_proof_with_make_header<Header, E, H, MakeNextHeader>(
 	)?;
 
 	// execute method
-	execution_proof_check_on_trie_backend::<H, Header::Number, _>(
+	execution_proof_check_on_trie_backend::<H, Header::Number, _, _>(
 		&trie_backend,
 		&mut changes,
 		executor,
