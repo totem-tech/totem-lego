@@ -58,6 +58,7 @@ members = [
 	"client/transaction-pool/graph",
 	"frame/accounting",
 	"frame/projects",
+	"frame/timekeeping",
 	"frame/assets",
 	"frame/atomic-swap",
 	"frame/aura",

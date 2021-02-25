@@ -35,7 +35,6 @@
 
 //! This is the main Totem Global Accounting Ledger
 //!
-//!
 //! It handles all the ledger postings.
 //! The account number follows the chart of accounts definitions and is constructed as a concatenation of:
 //! * Financial Statement Type Number int length 1 (Mainly Balance Sheet, Profit and Loss, and Memorandum)
@@ -103,6 +102,12 @@ pub type Account = u64;
 
 /// 0=Debit(false) 1=Credit(true) Note: Debit and Credit balances are account specific - see chart of accounts
 pub type Indicator = bool;
+#[derive(Decode, Encode)]
+pub enum _Indicator {
+    Debit = 0,
+    Credit = 1,
+}
+impl EncodeLike<_Indicator> for bool {}
 
 /// The index number for identifying the posting to ledgers
 pub type PostingIndex = u128;
