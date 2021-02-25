@@ -5242,6 +5242,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-timekeeping"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "hex-literal 0.1.4",
+ "pallet-projects",
+ "pallet-randomness-collective-flip",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-timestamp"
 version = "3.0.0"
 dependencies = [
