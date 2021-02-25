@@ -64,7 +64,7 @@
 mod traits;
 pub use traits::Validating;
 
-use frame_support::pallet_prelude::*;
+use frame_support::{fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;
@@ -92,32 +92,25 @@ mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn project_hash_status)]
     /// .
-    pub type ProjectHashStatus<T: Config> =
-        StorageMap<_, /*TODO correct Hasher*/ Blake2_128Concat, T::Hash, ProjectStatus>;
+    pub type ProjectHashStatus<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, ProjectStatus>;
 
     #[pallet::storage]
     #[pallet::getter(fn deleted_project)]
     /// .
-    pub type DeletedProjects<T: Config> = StorageMap<
-        _,
-        /*TODO correct Hasher*/ Blake2_128Concat,
-        T::Hash,
-        Vec<DeletedProject<T::AccountId, ProjectStatus>>,
-    >;
+    pub type DeletedProjects<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::Hash, Vec<DeletedProject<T::AccountId, ProjectStatus>>>;
 
     #[pallet::storage]
     #[pallet::getter(fn project_hash_owner)]
     ///
-    pub type ProjectHashOwner<T: Config> =
-        StorageMap<_, /*TODO correct Hasher*/ Blake2_128Concat, T::Hash, T::AccountId>;
+    pub type ProjectHashOwner<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, T::AccountId>;
 
     #[pallet::storage]
     #[pallet::getter(fn owner_projects_list)]
     ///
-    pub type OwnerProjectsList<T: Config> =
-        StorageMap<_, /*TODO correct Hasher*/ Blake2_128Concat, T::AccountId, Vec<T::Hash>>;
+    pub type OwnerProjectsList<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Vec<T::Hash>>;
 
-    #[pallet::config] //TODO declare configs that are constant
+    #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
     }
@@ -158,19 +151,19 @@ mod pallet {
         #[pallet::weight(0/*TODO*/)]
         fn add_new_project(origin: OriginFor<T>, project_hash: T::Hash) -> DispatchResultWithPostInfo {
             // Check that the project does not exist
-            ensure!(!<ProjectHashStatus<T>>::contains_key(project_hash.clone()), Error::<T>::ProjectAlreadyExists);
+            ensure!(!ProjectHashStatus::<T>::contains_key(project_hash.clone()), Error::<T>::ProjectAlreadyExists);
 
             // Check that the project was not deleted already
-            ensure!(!<DeletedProjects<T>>::contains_key(project_hash.clone()), Error::<T>::ProjectAlreadyDeleted);
+            ensure!(!DeletedProjects::<T>::contains_key(project_hash.clone()), Error::<T>::ProjectAlreadyDeleted);
 
             // proceed to store project
             let who = ensure_signed(origin)?;
             let project_status: ProjectStatus = 0;
 
             // TODO limit nr of Projects per Account.
-            <ProjectHashStatus<T>>::insert(project_hash.clone(), &project_status);
-            <ProjectHashOwner<T>>::insert(project_hash.clone(), &who);
-            <OwnerProjectsList<T>>::mutate(&who, |owner_projects_list| {
+            ProjectHashStatus::<T>::insert(project_hash.clone(), &project_status);
+            ProjectHashOwner::<T>::insert(project_hash.clone(), &who);
+            OwnerProjectsList::<T>::mutate(&who, |owner_projects_list| {
                 Some(owner_projects_list.as_mut()?.push(project_hash.clone()))
             });
 
@@ -181,7 +174,7 @@ mod pallet {
 
         #[pallet::weight(0/*TODO*/)]
         fn remove_project(origin: OriginFor<T>, project_hash: T::Hash) -> DispatchResultWithPostInfo {
-            ensure!(<ProjectHashStatus<T>>::contains_key(project_hash.clone()), Error::<T>::ProjectDoesNotExist);
+            ensure!(ProjectHashStatus::<T>::contains_key(project_hash.clone()), Error::<T>::ProjectDoesNotExist);
 
             // get project by hash
             let project_owner: T::AccountId =
@@ -203,18 +196,18 @@ mod pallet {
             };
 
             // retain all other projects except the one we want to delete
-            <OwnerProjectsList<T>>::mutate(&project_owner, |owner_projects_list| {
+            OwnerProjectsList::<T>::mutate(&project_owner, |owner_projects_list| {
                 Some(owner_projects_list.as_mut()?.retain(|h| h != &project_hash))
             });
 
             // remove project from owner
-            <ProjectHashOwner<T>>::remove(project_hash.clone());
+            ProjectHashOwner::<T>::remove(project_hash.clone());
 
             // remove status record
-            <ProjectHashStatus<T>>::remove(project_hash.clone());
+            ProjectHashStatus::<T>::remove(project_hash.clone());
 
             // record the fact of deletion by whom
-            <DeletedProjects<T>>::mutate(project_hash.clone(), |deleted_project| {
+            DeletedProjects::<T>::mutate(project_hash.clone(), |deleted_project| {
                 Some(deleted_project.as_mut()?.push(deleted_project_struct))
             });
 
@@ -229,7 +222,7 @@ mod pallet {
             new_owner: T::AccountId,
             project_hash: T::Hash,
         ) -> DispatchResultWithPostInfo {
-            ensure!(<ProjectHashStatus<T>>::contains_key(project_hash.clone()), Error::<T>::ProjectDoesNotExist);
+            ensure!(ProjectHashStatus::<T>::contains_key(project_hash.clone()), Error::<T>::ProjectDoesNotExist);
 
             // get project owner from hash
             let project_owner: T::AccountId =
@@ -243,13 +236,13 @@ mod pallet {
             ensure!(project_owner == changer, Error::<T>::ProjectCannotReassignNotOwned);
 
             // retain all other projects except the one we want to reassign
-            <OwnerProjectsList<T>>::mutate(&project_owner, |owner_projects_list| {
+            OwnerProjectsList::<T>::mutate(&project_owner, |owner_projects_list| {
                 Some(owner_projects_list.as_mut()?.retain(|h| h != &project_hash))
             });
 
             // Set new owner for hash
-            <ProjectHashOwner<T>>::insert(project_hash.clone(), &new_owner);
-            <OwnerProjectsList<T>>::mutate(&new_owner, |owner_projects_list| {
+            ProjectHashOwner::<T>::insert(project_hash.clone(), &new_owner);
+            OwnerProjectsList::<T>::mutate(&new_owner, |owner_projects_list| {
                 Some(owner_projects_list.as_mut()?.push(project_hash))
             });
 
@@ -260,7 +253,7 @@ mod pallet {
 
         #[pallet::weight(0/*TODO*/)]
         fn close_project(origin: OriginFor<T>, project_hash: T::Hash) -> DispatchResultWithPostInfo {
-            ensure!(<ProjectHashStatus<T>>::contains_key(project_hash.clone()), Error::<T>::ProjectDoesNotExist);
+            ensure!(ProjectHashStatus::<T>::contains_key(project_hash.clone()), Error::<T>::ProjectDoesNotExist);
 
             let changer = ensure_signed(origin)?;
 
@@ -272,7 +265,7 @@ mod pallet {
             // Otherwise onlu the owner can change the data
             ensure!(project_owner == changer, Error::<T>::ProjectCannotCloseNotOwned);
             let project_status: ProjectStatus = 500;
-            <ProjectHashStatus<T>>::insert(project_hash.clone(), &project_status);
+            ProjectHashStatus::<T>::insert(project_hash.clone(), &project_status);
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, project_status));
 
@@ -284,7 +277,7 @@ mod pallet {
             // Can only reopen a project that is in status "closed"
             let project_status: ProjectStatus = match Self::project_hash_status(project_hash.clone()) {
                 Some(500) => 100,
-                _ => return Err(Error::<T>::StatusWrong.into()),
+                _ => fail!(Error::<T>::StatusWrong),
                 // None => return Err("Project has no status"),
             };
 
@@ -298,7 +291,7 @@ mod pallet {
             // Otherwise only the owner can change the data
             ensure!(project_owner == changer, Error::<T>::ProjectCannotChangeNotOwned);
 
-            <ProjectHashStatus<T>>::insert(project_hash.clone(), &project_status);
+            ProjectHashStatus::<T>::insert(project_hash.clone(), &project_status);
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, project_status));
 
@@ -311,7 +304,7 @@ mod pallet {
             project_hash: T::Hash,
             project_status: ProjectStatus,
         ) -> DispatchResultWithPostInfo {
-            ensure!(<ProjectHashStatus<T>>::contains_key(project_hash.clone()), Error::<T>::ProjectDoesNotExist);
+            ensure!(ProjectHashStatus::<T>::contains_key(project_hash.clone()), Error::<T>::ProjectDoesNotExist);
 
             let changer = ensure_signed(origin)?;
 
@@ -350,24 +343,24 @@ mod pallet {
                 0 | 100 => {
                     // can set 200, 300, 400, 500
                     match proposed_project_status {
-                        0 | 100 => return Err(Error::<T>::StatusWrong.into()),
+                        0 | 100 => fail!(Error::<T>::StatusWrong),
                         200 | 300 | 400 | 500 => (),
-                        _ => return Err(Error::<T>::StatusCannotApply.into()),
+                        _ => fail!(Error::<T>::StatusCannotApply),
                     };
                 }
                 200 | 300 | 500 => {
                     // only set 100
                     match proposed_project_status {
                         100 => (),
-                        _ => return Err(Error::<T>::StatusCannotApply.into()),
+                        _ => fail!(Error::<T>::StatusCannotApply),
                     };
                 }
-                _ => return Err(Error::<T>::StatusCannotApply.into()),
+                _ => fail!(Error::<T>::StatusCannotApply),
             };
 
             let allowed_project_status: ProjectStatus = proposed_project_status.into();
 
-            <ProjectHashStatus<T>>::insert(project_hash.clone(), &allowed_project_status);
+            ProjectHashStatus::<T>::insert(project_hash.clone(), &allowed_project_status);
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, allowed_project_status));
 

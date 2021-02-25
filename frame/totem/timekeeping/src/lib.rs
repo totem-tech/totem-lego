@@ -53,7 +53,7 @@ pub use traits::Validating;
 use frame_support::{dispatch::EncodeLike, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
-use frame_projects::Validating as ProjectValidating;
+use pallet_teams::Validating as ProjectValidating;
 
 use sp_std::prelude::*;
 

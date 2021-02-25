@@ -4950,24 +4950,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-projects"
-version = "1.0.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "hex-literal 0.1.4",
- "pallet-randomness-collective-flip",
- "pallet-timestamp",
- "parity-scale-codec",
- "serde",
- "sp-arithmetic",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-proxy"
 version = "3.0.0"
 dependencies = [
@@ -5183,14 +5165,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-teams"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "hex-literal 0.1.4",
+ "pallet-randomness-collective-flip",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-timekeeping"
 version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
  "hex-literal 0.1.4",
- "pallet-projects",
  "pallet-randomness-collective-flip",
+ "pallet-teams",
  "pallet-timestamp",
  "parity-scale-codec",
  "serde",
