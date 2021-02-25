@@ -33,24 +33,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Totem.  If not, see <http://www.gnu.org/licenses/>.
 
-use frame_support::pallet_prelude::*;
-use sp_std::prelude::*;
+pub trait Validating<AccountId, Hash> {
+    fn is_time_record_owner(o: AccountId, h: Hash) -> bool;
 
-/// Main Totem trait.
-pub trait Posting<AccountId, Hash, BlockNumber, CoinAmount> {
-    type Account: Member + Copy + Eq;
-    type PostingIndex: Member + Copy + Into<u128> + Encode + Decode + Eq;
-    type LedgerBalance: Member + Copy + Into<i128> + Encode + Decode + Eq;
-
-    fn handle_multiposting_amounts(
-        fwd: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-        rev: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-        trk: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-    ) -> DispatchResultWithPostInfo;
-
-    fn account_for_fees(f: CoinAmount, p: AccountId) -> DispatchResultWithPostInfo;
-
-    fn get_escrow_account() -> AccountId;
-
-    fn get_pseudo_random_hash(s: AccountId, r: AccountId) -> Hash;
+    fn validate_and_archive(o: AccountId, h: Hash, a: bool) -> bool;
 }
