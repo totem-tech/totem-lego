@@ -4133,6 +4133,7 @@ dependencies = [
  "pallet-contracts-primitives",
  "pallet-contracts-rpc-runtime-api",
  "pallet-democracy",
+ "pallet-election-provider-multi-phase",
  "pallet-elections-phragmen",
  "pallet-grandpa",
  "pallet-identity",
@@ -4503,6 +4504,7 @@ dependencies = [
  "sp-consensus-babe",
  "sp-consensus-vrf",
  "sp-core",
+ "sp-election-providers",
  "sp-io",
  "sp-runtime",
  "sp-session",
@@ -4663,6 +4665,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-election-provider-multi-phase"
+version = "3.0.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex-literal",
+ "pallet-balances",
+ "parity-scale-codec",
+ "parking_lot 0.11.1",
+ "paste 1.0.4",
+ "rand 0.7.3",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-election-providers",
+ "sp-io",
+ "sp-npos-elections",
+ "sp-runtime",
+ "sp-std",
+ "sp-tracing",
+ "static_assertions",
+ "substrate-test-utils",
+]
+
+[[package]]
 name = "pallet-elections"
 version = "3.0.0"
 dependencies = [
@@ -4763,6 +4791,7 @@ dependencies = [
  "serde",
  "sp-application-crypto",
  "sp-core",
+ "sp-election-providers",
  "sp-finality-grandpa",
  "sp-io",
  "sp-keyring",
@@ -4969,6 +4998,7 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-core",
+ "sp-election-providers",
  "sp-io",
  "sp-runtime",
  "sp-staking",
@@ -5109,6 +5139,7 @@ dependencies = [
  "rand 0.7.3",
  "serde",
  "sp-core",
+ "sp-election-providers",
  "sp-io",
  "sp-runtime",
  "sp-session",
@@ -5150,6 +5181,7 @@ dependencies = [
  "serde",
  "sp-application-crypto",
  "sp-core",
+ "sp-election-providers",
  "sp-io",
  "sp-npos-elections",
  "sp-runtime",
@@ -5177,6 +5209,7 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-core",
+ "sp-election-providers",
  "sp-io",
  "sp-npos-elections",
  "sp-runtime",
@@ -6645,7 +6678,6 @@ dependencies = [
  "sp-api",
  "sp-block-builder",
  "sp-blockchain",
- "sp-consensus",
  "sp-core",
  "sp-inherents",
  "sp-runtime",
@@ -7209,18 +7241,25 @@ name = "sc-finality-grandpa-warp-sync"
 version = "0.9.0"
 dependencies = [
  "derive_more",
+ "finality-grandpa",
  "futures 0.3.12",
  "log",
  "num-traits",
  "parity-scale-codec",
  "parking_lot 0.11.1",
  "prost",
+ "rand 0.8.3",
+ "sc-block-builder",
  "sc-client-api",
  "sc-finality-grandpa",
  "sc-network",
  "sc-service",
  "sp-blockchain",
+ "sp-consensus",
+ "sp-finality-grandpa",
+ "sp-keyring",
  "sp-runtime",
+ "substrate-test-runtime-client",
 ]
 
 [[package]]
