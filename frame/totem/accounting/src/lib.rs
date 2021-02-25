@@ -86,7 +86,7 @@
 mod traits;
 pub use traits::Posting;
 
-use frame_support::{codec::Codec, dispatch::EncodeLike, pallet_prelude::*};
+use frame_support::{codec::Codec, dispatch::EncodeLike, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
 use sp_arithmetic::traits::BaseArithmetic;
@@ -129,8 +129,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn id_account_posting_id_list)]
     /// Associate the posting index with the identity.
-    pub type IdAccountPostingIdList<T: Config> =
-        StorageMap<_, /*TODO correct Hasher*/ Blake2_128Concat, (T::AccountId, Account), Vec<u128>>;
+    pub type IdAccountPostingIdList<T: Config> = StorageMap<_, Blake2_128Concat, (T::AccountId, Account), Vec<u128>>;
 
     #[pallet::storage]
     #[pallet::getter(fn accounts_by_id)]
@@ -168,7 +167,7 @@ pub mod pallet {
     // Depreciation (calculated everytime there is a transaction so as not to overwork the runtime) - sets "last seen block" to calculate the delta for depreciation
 
     #[pallet::config] //TODO declare configs that are constant
-    pub trait Config: frame_system::Config + frame_timestamp::Config {
+    pub trait Config: frame_system::Config + pallet_timestamp::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// The equivalent to Balance trait to avoid cyclical dependency.
@@ -180,8 +179,6 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Error fetching latest posting index.
-        PostingIndexFetching,
         /// Error fetching the balance by ledger.
         BalanceByLedgerFetching,
         /// Error fetching the global ledger.
@@ -232,17 +229,12 @@ impl<T: Config> Pallet<T> {
     /// The Totem Accounting Recipes are constructed using this simple function.
     /// The second Blocknumber is for re-targeting the entry in the accounts, i.e. for adjustments prior to or after the current period (generally accruals).
     fn post_amounts(
-        //TODO: give an explicit name to those variables:
         (o, a, c, d, h, b, t): (T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber),
     ) -> DispatchResultWithPostInfo {
-        let posting_index = if <PostingNumber<T>>::exists() {
+        let posting_index = match Self::posting_number() {
             // Get and increment the posting number
-            Self::posting_number()
-                .ok_or(Error::<T>::PostingIndexFetching)?
-                .checked_add(1)
-                .ok_or(Error::<T>::PostingIndexOverflow)?
-        } else {
-            0
+            Some(index) => index.checked_add(1).ok_or(Error::<T>::PostingIndexOverflow)?,
+            None => 0,
         };
         let ab: LedgerBalance = c.abs();
         let balance_key = (o.clone(), a);
@@ -262,16 +254,16 @@ impl<T: Config> Pallet<T> {
             .checked_add(c)
             .ok_or(Error::<T>::GlobalBalanceValueOverflow)?;
 
-        <PostingNumber<T>>::put(posting_index);
+        PostingNumber::<T>::put(posting_index);
         if let None = <IdAccountPostingIdList<T>>::mutate(&balance_key, |list| Some(list.as_mut()?.push(posting_index)))
         {
             // No item under the key. What should we do in this case? Same for the following lines.
         }
-        <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.retain(|h| h != &a)));
-        <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.push(a)));
-        <BalanceByLedger<T>>::insert(&balance_key, new_balance);
-        <PostingDetail<T>>::insert(&posting_key, Some(detail));
-        <GlobalLedger<T>>::insert(&a, new_global_balance);
+        AccountsById::<T>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.retain(|h| h != &a)));
+        AccountsById::<T>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.push(a)));
+        BalanceByLedger::<T>::insert(&balance_key, new_balance);
+        PostingDetail::<T>::insert(&posting_key, Some(detail));
+        GlobalLedger::<T>::insert(&a, new_global_balance);
 
         Self::deposit_event(Event::LegderUpdate(o, a, c, posting_index));
 
@@ -315,10 +307,10 @@ where
                     // as this has already changed in storage.
                     for b in trk.iter() {
                         if let Err(_e) = Self::post_amounts(b.clone()) {
-                            Err(Error::<T>::SystemFailure)?;
+                            fail!(Error::<T>::SystemFailure);
                         }
                     }
-                    Err(Error::<T>::AmountOverflow)?;
+                    fail!(Error::<T>::AmountOverflow);
                 }
             }
         }
@@ -426,10 +418,10 @@ where
         let tuple = (sender, recipient);
         let input = (
             tuple,
-            <frame_timestamp::Module<T>>::get(),
+            pallet_timestamp::Module::<T>::get(),
             sp_io::offchain::random_seed(),
-            <frame_system::Module<T>>::extrinsic_index(),
-            <frame_system::Module<T>>::block_number(),
+            frame_system::Module::<T>::extrinsic_index(),
+            frame_system::Module::<T>::block_number(),
         );
 
         T::Hashing::hash(input.encode().as_slice()) // default hash BlakeTwo256
