@@ -71,7 +71,10 @@ use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;
 
+use totem_utils::ok;
+
 /// Reference supplied externally.
+//TODO make an enum (Cf bottom page)
 pub type ProjectStatus = u16;
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode)]
@@ -171,7 +174,7 @@ mod pallet {
 
             Self::deposit_event(Event::ProjectRegistered(project_hash, who));
 
-            Ok(().into())
+            ok()
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -215,7 +218,7 @@ mod pallet {
 
             Self::deposit_event(Event::ProjectDeleted(project_hash, project_owner, changer, 999));
 
-            Ok(().into())
+            ok()
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -250,7 +253,7 @@ mod pallet {
 
             Self::deposit_event(Event::ProjectReassigned(project_hash, new_owner, changed_by));
 
-            Ok(().into())
+            ok()
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -271,7 +274,7 @@ mod pallet {
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, project_status));
 
-            Ok(().into())
+            ok()
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -297,7 +300,7 @@ mod pallet {
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, project_status));
 
-            Ok(().into())
+            ok()
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -366,7 +369,7 @@ mod pallet {
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, allowed_project_status));
 
-            Ok(().into())
+            ok()
         }
     }
 

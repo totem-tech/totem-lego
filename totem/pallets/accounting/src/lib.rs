@@ -94,20 +94,22 @@ use sp_primitives::crypto::UncheckedFrom;
 use sp_runtime::traits::{Convert, Hash, Member};
 use sp_std::prelude::*;
 
+use totem_utils::ok;
+
 /// Balance on an account can be negative
 pub type LedgerBalance = i128;
 
 /// General ledger account number
 pub type Account = u64;
 
-/// 0=Debit(false) 1=Credit(true) Note: Debit and Credit balances are account specific - see chart of accounts
-pub type Indicator = bool;
+/// Note: Debit and Credit balances are account specific - see chart of accounts.
+#[repr(u8)]
 #[derive(Decode, Encode)]
-pub enum _Indicator {
+pub enum Indicator {
     Debit = 0,
     Credit = 1,
 }
-impl EncodeLike<_Indicator> for bool {}
+impl EncodeLike<Indicator> for bool {}
 
 /// The index number for identifying the posting to ledgers
 pub type PostingIndex = u128;
@@ -148,7 +150,7 @@ pub mod pallet {
         _,
         Blake2_128Concat,
         (T::AccountId, Account, u128),
-        Option<(T::BlockNumber, LedgerBalance, Indicator, T::Hash, T::BlockNumber)>,
+        (T::BlockNumber, LedgerBalance, Indicator, T::Hash, T::BlockNumber),
     >;
 
     #[pallet::storage]
@@ -262,12 +264,12 @@ impl<T: Config> Pallet<T> {
         AccountsById::<T>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.retain(|h| h != &a)));
         AccountsById::<T>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.push(a)));
         BalanceByLedger::<T>::insert(&balance_key, new_balance);
-        PostingDetail::<T>::insert(&posting_key, Some(detail));
+        PostingDetail::<T>::insert(&posting_key, detail);
         GlobalLedger::<T>::insert(&a, new_global_balance);
 
         Self::deposit_event(Event::LegderUpdate(o, a, c, posting_index));
 
-        Ok(().into())
+        ok()
     }
 }
 
@@ -314,7 +316,7 @@ where
                 }
             }
         }
-        Ok(().into())
+        ok()
     }
 
     /// This function simply returns the Totem escrow account address
