@@ -1,0 +1,15 @@
+[package]
+authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
+description = 'Various utils'
+edition = '2018'
+homepage = 'https://totemaccounting.com'
+license = 'GNU'
+name = 'totem-utils'
+version = '1.0.0'
+# repository = 'https://github.com/substrate-developer-hub/substrate-pallet-template/'
+
+[dependencies]
+frame-support = { path = "../../frame/support", default-features = false }
+
+[features]
+#default = ["std"]

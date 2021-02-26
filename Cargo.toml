@@ -56,9 +56,6 @@ members = [
 	"client/tracing/proc-macro",
 	"client/transaction-pool",
 	"client/transaction-pool/graph",
-	"frame/totem/accounting",
-	"frame/totem/teams",
-	"frame/totem/timekeeping",
 	"frame/assets",
 	"frame/atomic-swap",
 	"frame/aura",
@@ -194,6 +191,9 @@ members = [
 	"utils/frame/rpc/system",
 	"utils/prometheus",
 	"utils/wasm-builder",
+	"totem/pallets/accounting",
+	"totem/pallets/teams",
+	"totem/pallets/timekeeping",
 ]
 
 # The list of dependencies below (which can be both direct and indirect dependencies) are crates
