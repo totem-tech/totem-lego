@@ -4154,6 +4154,8 @@ dependencies = [
  "pallet-staking",
  "pallet-staking-reward-curve",
  "pallet-sudo",
+ "pallet-teams",
+ "pallet-timekeeping",
  "pallet-timestamp",
  "pallet-tips",
  "pallet-transaction-payment",
@@ -5235,7 +5237,6 @@ dependencies = [
  "serde",
  "sp-arithmetic",
  "sp-core",
- "sp-io",
  "sp-runtime",
  "sp-std",
 ]

@@ -1048,10 +1048,21 @@ impl pallet_assets::Config for Runtime {
 	type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
 }
 
+/* Totem */
+
 impl pallet_accounting::Config for Runtime {
 	type Event = Event;
 	type CoinAmount = Balance;
 	type AccountingConversions = conversion_handler::ConversionHandler;
+}
+
+impl pallet_teams::Config for Runtime {
+	type Event = Event;
+}
+
+impl pallet_timekeeping::Config for Runtime {
+	type Event = Event;
+	type Projects = Teams;
 }
 
 construct_runtime!(
@@ -1061,7 +1072,11 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
+		// Totem
 		Accounting: pallet_accounting::{Module, Call, Storage, Event<T>},
+		Teams: pallet_teams::{Module, Call, Storage, Event<T>},
+		Timekeeping: pallet_timekeeping::{Module, Call, Storage, Event<T>},
+		//
 		Utility: pallet_utility::{Module, Call, Event},
 		Babe: pallet_babe::{Module, Call, Storage, Config, ValidateUnsigned},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},

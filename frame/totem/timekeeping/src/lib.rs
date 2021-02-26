@@ -46,6 +46,8 @@
 //! It should be noted that validators timestamp each new block with the "correct" timestamp, which can be retrieved
 //! when needed to provide time analysis for accounting entries.
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
 mod tests;
 mod traits;
 pub use traits::Validating;
