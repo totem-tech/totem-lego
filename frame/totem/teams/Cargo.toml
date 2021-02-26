@@ -19,7 +19,7 @@ pallet-randomness = { package = "pallet-randomness-collective-flip", path = "../
 pallet-timestamp = { path = "../../timestamp", default-features = false }
 # primitives
 sp-arithmetic = { path = "../../../primitives/arithmetic", default-features = false }
-sp-io = { path = "../../../primitives/io", default-features = false }
+#sp-io = { path = "../../../primitives/io", default-features = false }
 sp-primitives = { package = "sp-core", path = "../../../primitives/core", default-features = false }
 sp-runtime = { path = "../../../primitives/runtime", default-features = false }
 sp-std = { path = "../../../primitives/std", default-features = false }

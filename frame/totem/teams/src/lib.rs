@@ -61,6 +61,8 @@
 //! * deadline: u64, // prefunding acceptance deadline
 //! * due_date: u64, // due date is the future delivery date (in blocks)
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
 mod traits;
 pub use traits::Validating;
 
