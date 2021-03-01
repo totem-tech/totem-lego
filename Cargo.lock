@@ -9843,6 +9843,7 @@ name = "totem-utils"
 version = "1.0.0"
 dependencies = [
  "frame-support",
+ "parity-scale-codec",
 ]
 
 [[package]]

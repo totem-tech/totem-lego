@@ -71,7 +71,7 @@ use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;
 
-use totem_utils::ok;
+use totem_utils::{ok, StorageMapExt};
 
 /// Reference supplied externally.
 //TODO make an enum (Cf bottom page)
@@ -168,9 +168,7 @@ mod pallet {
             // TODO limit nr of Projects per Account.
             ProjectHashStatus::<T>::insert(project_hash.clone(), &project_status);
             ProjectHashOwner::<T>::insert(project_hash.clone(), &who);
-            OwnerProjectsList::<T>::mutate(&who, |owner_projects_list| {
-                Some(owner_projects_list.as_mut()?.push(project_hash.clone()))
-            });
+            OwnerProjectsList::<T>::mutate_(&who, |owner_projects_list| owner_projects_list.push(project_hash.clone()));
 
             Self::deposit_event(Event::ProjectRegistered(project_hash, who));
 
@@ -201,8 +199,8 @@ mod pallet {
             };
 
             // retain all other projects except the one we want to delete
-            OwnerProjectsList::<T>::mutate(&project_owner, |owner_projects_list| {
-                Some(owner_projects_list.as_mut()?.retain(|h| h != &project_hash))
+            OwnerProjectsList::<T>::mutate_(&project_owner, |owner_projects_list| {
+                owner_projects_list.retain(|h| h != &project_hash)
             });
 
             // remove project from owner
@@ -212,8 +210,8 @@ mod pallet {
             ProjectHashStatus::<T>::remove(project_hash.clone());
 
             // record the fact of deletion by whom
-            DeletedProjects::<T>::mutate(project_hash.clone(), |deleted_project| {
-                Some(deleted_project.as_mut()?.push(deleted_project_struct))
+            DeletedProjects::<T>::mutate_(project_hash.clone(), |deleted_project| {
+                deleted_project.push(deleted_project_struct)
             });
 
             Self::deposit_event(Event::ProjectDeleted(project_hash, project_owner, changer, 999));
@@ -241,15 +239,13 @@ mod pallet {
             ensure!(project_owner == changer, Error::<T>::ProjectCannotReassignNotOwned);
 
             // retain all other projects except the one we want to reassign
-            OwnerProjectsList::<T>::mutate(&project_owner, |owner_projects_list| {
-                Some(owner_projects_list.as_mut()?.retain(|h| h != &project_hash))
+            OwnerProjectsList::<T>::mutate_(&project_owner, |owner_projects_list| {
+                owner_projects_list.retain(|h| h != &project_hash)
             });
 
             // Set new owner for hash
             ProjectHashOwner::<T>::insert(project_hash.clone(), &new_owner);
-            OwnerProjectsList::<T>::mutate(&new_owner, |owner_projects_list| {
-                Some(owner_projects_list.as_mut()?.push(project_hash))
-            });
+            OwnerProjectsList::<T>::mutate_(&new_owner, |owner_projects_list| owner_projects_list.push(project_hash));
 
             Self::deposit_event(Event::ProjectReassigned(project_hash, new_owner, changed_by));
 
@@ -263,7 +259,7 @@ mod pallet {
             let changer = ensure_signed(origin)?;
 
             // get project owner by hash
-            let project_owner: T::AccountId =
+            let project_owner =
                 Self::project_hash_owner(project_hash.clone()).ok_or(Error::<T>::ProjectCannotFetchOwner)?;
 
             // TODO Implement a sudo for cleaning data in cases where owner is lost
