@@ -4532,6 +4532,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-bonsai"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "hex-literal 0.1.4",
+ "pallet-randomness-collective-flip",
+ "pallet-teams",
+ "pallet-timekeeping",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "totem-utils",
+]
+
+[[package]]
 name = "pallet-bounties"
 version = "3.0.0"
 dependencies = [
