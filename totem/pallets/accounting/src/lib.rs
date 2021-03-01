@@ -94,7 +94,7 @@ use sp_primitives::crypto::UncheckedFrom;
 use sp_runtime::traits::{Convert, Hash, Member};
 use sp_std::prelude::*;
 
-use totem_utils::ok;
+use totem_utils::{ok, StorageMapExt};
 
 /// Balance on an account can be negative
 pub type LedgerBalance = i128;
@@ -257,12 +257,9 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::GlobalBalanceValueOverflow)?;
 
         PostingNumber::<T>::put(posting_index);
-        if let None = <IdAccountPostingIdList<T>>::mutate(&balance_key, |list| Some(list.as_mut()?.push(posting_index)))
-        {
-            // No item under the key. What should we do in this case? Same for the following lines.
-        }
-        AccountsById::<T>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.retain(|h| h != &a)));
-        AccountsById::<T>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.push(a)));
+        IdAccountPostingIdList::<T>::mutate_(&balance_key, |list| list.push(posting_index));
+        AccountsById::<T>::mutate_(&o, |accounts_by_id| accounts_by_id.retain(|h| h != &a));
+        AccountsById::<T>::mutate_(&o, |accounts_by_id| accounts_by_id.push(a));
         BalanceByLedger::<T>::insert(&balance_key, new_balance);
         PostingDetail::<T>::insert(&posting_key, detail);
         GlobalLedger::<T>::insert(&a, new_global_balance);
