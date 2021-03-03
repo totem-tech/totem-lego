@@ -191,13 +191,14 @@ members = [
 	"utils/frame/rpc/system",
 	"utils/prometheus",
 	"utils/wasm-builder",
-	"totem/pallets/accounting",
-	"totem/pallets/archive",
-	"totem/pallets/bonsai",
-	"totem/pallets/orders",
-	"totem/pallets/prefunding",
-	"totem/pallets/teams",
-	"totem/pallets/timekeeping",
+	"frame/totem/pallets/accounting",
+	"frame/totem/pallets/archive",
+	"frame/totem/pallets/bonsai",
+	"frame/totem/pallets/orders",
+	"frame/totem/pallets/prefunding",
+	"frame/totem/pallets/teams",
+	"frame/totem/pallets/timekeeping",
+	"frame/totem/utils",
 ]
 
 # The list of dependencies below (which can be both direct and indirect dependencies) are crates
