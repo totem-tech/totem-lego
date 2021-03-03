@@ -124,8 +124,8 @@ pub mod pallet {
         type Projects: TeamsValidating<Self::AccountId, Self::Hash>;
         type Orders: OrderValidating<Self::AccountId, Self::Hash>;
         type BonsaiConversions: Convert<Self::Hash, H256>
-            + Convert<Self::BlockNumber, u64>
-            + Convert<u64, Self::BlockNumber>
+            + Convert<Self::BlockNumber, u32>
+            + Convert<u32, Self::BlockNumber>
             + Convert<H256, Self::Hash>;
     }
 
@@ -163,7 +163,7 @@ pub mod pallet {
         fn on_finalize_example(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
             let current_block: T::BlockNumber = frame_system::Pallet::<T>::block_number();
-            let current: u64 = <T::BonsaiConversions as Convert<T::BlockNumber, u64>>::convert(current_block);
+            let current = <T::BonsaiConversions as Convert<T::BlockNumber, u32>>::convert(current_block);
             // Get all hashes
             let default_bytes = b"nobody can save fiat currency now";
             let list_key: T::Hash = T::Hashing::hash(default_bytes.encode().as_slice());
@@ -173,10 +173,10 @@ pub mod pallet {
                     let key: T::Hash = i.clone();
                     match Self::is_started(&key) {
                         Some(block) => {
-                            let mut target_block: u64 =
-                                <T::BonsaiConversions as Convert<T::BlockNumber, u64>>::convert(block);
-                            target_block = target_block + 172800u64;
-                            // let mut target_deletion_block: T::BlockNumber = <T::BonsaiConversions as Convert<u64, T::BlockNumber>>::convert(target_block);
+                            let mut target_block =
+                                <T::BonsaiConversions as Convert<T::BlockNumber, u32>>::convert(block);
+                            target_block = target_block + 172800_u32;
+                            // let mut target_deletion_block: T::BlockNumber = <T::BonsaiConversions as Convert<u32, T::BlockNumber>>::convert(target_block);
                             // cleanup 30 Days from when the transaction started, but did not complete
                             // It's possible this comparison is not working
                             if current >= target_block {
@@ -185,8 +185,8 @@ pub mod pallet {
                         }
                         None => {
                             if let Some(block) = Self::is_successful(&key) {
-                                let target_block: u64 =
-                                    <T::BonsaiConversions as Convert<T::BlockNumber, u64>>::convert(block);
+                                let target_block =
+                                    <T::BonsaiConversions as Convert<T::BlockNumber, u32>>::convert(block);
                                 if current >= target_block {
                                     IsSuccessful::<T>::remove(key.clone());
                                 }
@@ -267,9 +267,9 @@ impl<T: Config> Pallet<T> {
             // The transaction is now completed successfully update the state change
             // remove from started, and place in successful
             let current_block = <frame_system::Pallet<T>>::block_number();
-            let mut block: u64 = <T::BonsaiConversions as Convert<T::BlockNumber, u64>>::convert(current_block);
-            block = block + 172800u64; // cleanup in 30 Days
-            let deletion_block: T::BlockNumber = <T::BonsaiConversions as Convert<u64, T::BlockNumber>>::convert(block);
+            let mut block: u32 = T::BonsaiConversions::convert(current_block);
+            block = block + 172800_u32; // cleanup in 30 Days
+            let deletion_block: T::BlockNumber = <T::BonsaiConversions as Convert<u32, T::BlockNumber>>::convert(block);
             IsStarted::<T>::remove(&u);
             IsSuccessful::<T>::insert(u, deletion_block);
         } else {

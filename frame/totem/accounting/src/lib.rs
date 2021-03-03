@@ -89,7 +89,6 @@ use frame_support::{codec::Codec, dispatch::EncodeLike, fail, pallet_prelude::*}
 use frame_system::pallet_prelude::*;
 
 use sp_arithmetic::traits::BaseArithmetic;
-use sp_primitives::crypto::UncheckedFrom;
 use sp_runtime::traits::{Convert, Hash, Member};
 use sp_std::prelude::*;
 
@@ -272,9 +271,9 @@ impl<T: Config> Pallet<T> {
 
 pub use pallet::*;
 
-impl<T: Config> Posting<T::AccountId, T::Hash, T::BlockNumber, T::CoinAmount> for Module<T>
+impl<T: Config> Posting<T::AccountId, T::Hash, T::BlockNumber, T::CoinAmount> for Pallet<T>
 where
-    T::AccountId: UncheckedFrom<[u8; 32]>,
+    T::AccountId: From<[u8; 32]>,
 {
     type Account = Account;
     type LedgerBalance = LedgerBalance;
@@ -319,7 +318,8 @@ where
     /// This function simply returns the Totem escrow account address
     fn get_escrow_account() -> T::AccountId {
         let escrow_account: [u8; 32] = *b"TotemsEscrowAddress4LockingFunds";
-        UncheckedFrom::unchecked_from(escrow_account)
+
+        escrow_account.into()
     }
 
     /// This function takes the transaction fee and prepares to account for it in accounting.

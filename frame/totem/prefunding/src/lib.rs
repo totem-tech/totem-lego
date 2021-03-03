@@ -138,7 +138,7 @@ pub mod pallet {
             + Convert<Vec<u8>, LockIdentifier>
             + Convert<u64, AccountOf<Self>>
             + Convert<u64, CurrencyBalanceOf<Self>>
-            + Convert<u64, Self::BlockNumber>
+            + Convert<u32, Self::BlockNumber>
             + Convert<i128, AccountBalanceOf<Self>>
             + Convert<u128, AccountBalanceOf<Self>>
             + Convert<u128, i128>
@@ -504,7 +504,7 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
         // NEED TO CHECK THAT THE DEADLINE IS SENSIBLE!!!!
         // 48 hours is the minimum deadline. This is the minimum amountof time before the money can be reclaimed
         let minimum_deadline: T::BlockNumber =
-            current_block + <T::PrefundingConversions as Convert<u64, T::BlockNumber>>::convert(11520u64);
+            current_block + <T::PrefundingConversions as Convert<u32, T::BlockNumber>>::convert(11520_u32);
         if deadline < minimum_deadline {
             fail!(Error::<T>::ErrorShortDeadline);
         }

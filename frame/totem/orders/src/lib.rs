@@ -118,8 +118,8 @@ pub struct OrderHeader<AccountId> {
     pub amount: i128,
     pub market_order: bool,
     pub order_type: u16,
-    pub deadline: u64,
-    pub due_date: u64,
+    pub deadline: u32,
+    pub due_date: u32,
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, Default)]
@@ -197,8 +197,8 @@ pub mod pallet {
             + Convert<bool, UnLocked<Self>>
             + Convert<AccountBalanceOf<Self>, i128>
             + Convert<AccountBalanceOf<Self>, u128>
-            + Convert<u64, Self::BlockNumber>
-            + Convert<Self::BlockNumber, u64>;
+            + Convert<u32, Self::BlockNumber>
+            + Convert<Self::BlockNumber, u32>;
         type Accounting: Posting<Self::AccountId, Self::Hash, Self::BlockNumber, Self::CoinAmount>;
         type Prefunding: Encumbrance<Self::AccountId, Self::Hash, Self::BlockNumber>;
         type Bonsai: Storing<Self::Hash>;
@@ -324,8 +324,8 @@ pub mod pallet {
             total_amount: i128,
             market_order: bool,
             order_type: u16,
-            deadline: u64,
-            due_date: u64,
+            deadline: u32,
+            due_date: u32,
             order_items: Vec<OrderItem<T::Hash>>,
             tx_keys_large: TXKeysL<T::Hash>,
         ) -> DispatchResultWithPostInfo {
@@ -408,8 +408,8 @@ pub mod pallet {
             total_amount: i128,             // amount should be the sum of all the items untiprices * quantities
             market_order: bool,             // 0: open(false) 1: closed(true)
             order_type: u16,                // 0: service, 1: inventory, 2: asset extensible
-            deadline: u64,                  // prefunding acceptance deadline
-            due_date: u64,                  // due date is the future delivery date (in blocks)
+            deadline: u32,                  // prefunding acceptance deadline
+            due_date: u32,                  // due date is the future delivery date (in blocks)
             order_item: OrderItem<T::Hash>, // for simple items there will only be one item, item number is accessed by its position in Vec
             bonsai_token: T::Hash,          // Bonsai data Hash
             tx_uid: T::Hash,                // Bonsai data Hash
@@ -456,8 +456,8 @@ pub mod pallet {
             approver: T::AccountId,
             fulfiller: T::AccountId,
             amount: i128,
-            deadline: u64,
-            due_date: u64,
+            deadline: u32,
+            due_date: u32,
             order_item: OrderItem<T::Hash>,
             record_id: T::Hash,
             bonsai_token: T::Hash,
@@ -590,8 +590,8 @@ impl<T: Config> Pallet<T> {
         amount: i128,       // amount should be the sum of all the items untiprices * quantities
         market_order: bool, // 0: open(false) 1: closed(true)
         order_type: u16,    // 0: personal, 1: business, extensible
-        deadline: u64,      // prefunding acceptance deadline
-        due_date: u64,      // due date is the future delivery date (in blocks)
+        deadline: u32,      // prefunding acceptance deadline
+        due_date: u32,      // due date is the future delivery date (in blocks)
         order_hash: T::Hash,
         order_item: OrderItem<T::Hash>, // for simple items there will only be one item, item number is accessed by its position in Vec
         bonsai_token: T::Hash,
@@ -624,7 +624,7 @@ impl<T: Config> Pallet<T> {
             // the order is approved.
             let approval_status: ApprovalStatus = ApprovalStatus::Accepted;
             let deadline_converted: T::BlockNumber =
-                <T::OrderConversions as Convert<u64, T::BlockNumber>>::convert(deadline.clone());
+                <T::OrderConversions as Convert<u32, T::BlockNumber>>::convert(deadline);
             // approval status has been set to approved, continue.
             // Set prefunding first. It does not matter if later the process fails, as this is locking funds for the commander
             // The risk is that they cannot get back the funds until after the deadline, even of they want to cancel.
@@ -748,8 +748,8 @@ impl<T: Config> Pallet<T> {
         approver: T::AccountId,
         fulfiller: T::AccountId,
         amount: i128,
-        deadline: u64,
-        due_date: u64,
+        deadline: u32,
+        due_date: u32,
         order_item: OrderItem<T::Hash>,
         reference: T::Hash,
         bonsai_token: T::Hash,
@@ -786,13 +786,13 @@ impl<T: Config> Pallet<T> {
             // Check that the amount is the sum of all the items
         }
 
-        let current_block_converted: u64 =
-            <T::OrderConversions as Convert<T::BlockNumber, u64>>::convert(current_block);
+        let current_block_converted: u32 =
+            <T::OrderConversions as Convert<T::BlockNumber, u32>>::convert(current_block);
         if order_hdr.deadline != deadline {
             // TODO This may be unusable/unworkable needs trying out
             // 48 hours is the minimum deadline
             // every time there is a change the deadline gets pushed back by 48 hours byond the current block
-            let min_deadline: u64 = current_block_converted + 11520u64;
+            let min_deadline = current_block_converted + 11520_u32;
             if deadline < min_deadline {
                 fail!(Error::<T>::ErrorShortDeadline);
             }
@@ -801,7 +801,7 @@ impl<T: Config> Pallet<T> {
         if order_hdr.due_date != due_date {
             // due date must be at least 1 hours after deadline (TODO - Validate! as this is a guess)
             // This is basically adding 49 hours to the current block
-            let minimum_due_date: u64 = current_block_converted + 11760u64;
+            let minimum_due_date = current_block_converted + 11760_u32;
             if due_date < minimum_due_date {
                 fail!(Error::<T>::ErrorShortDueDate);
             }

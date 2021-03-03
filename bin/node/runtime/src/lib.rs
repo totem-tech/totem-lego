@@ -994,49 +994,51 @@ impl pallet_assets::Config for Runtime {
 	type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
 }
 
-/* Totem */
+mod totem {
+	use super::*;
 
-impl pallet_accounting::Config for Runtime {
-	type Event = Event;
-	type CoinAmount = Balance;
-	type AccountingConversions = conversion_handler::ConversionHandler;
-}
+	impl pallet_accounting::Config for Runtime {
+		type Event = Event;
+		type CoinAmount = Balance;
+		type AccountingConversions = conversion_handler::ConversionHandler;
+	}
 
-impl pallet_archive::Config for Runtime {
-	type Event = Event;
-	type Timekeeping = pallet_timekeeping::Module<Self>;
-}
+	impl pallet_archive::Config for Runtime {
+		type Event = Event;
+		type Timekeeping = pallet_timekeeping::Module<Self>;
+	}
 
-impl pallet_bonsai::Config for Runtime {
-	type Event = Event;
-	type Orders = pallet_orders::Module<Self>;
-	type Projects = pallet_teams::Module<Self>;
-	type Timekeeping = pallet_timekeeping::Module<Self>;
-	type BonsaiConversions = conversion_handler::ConversionHandler;
-}
+	impl pallet_bonsai::Config for Runtime {
+		type Event = Event;
+		type Orders = pallet_orders::Module<Self>;
+		type Projects = pallet_teams::Module<Self>;
+		type Timekeeping = pallet_timekeeping::Module<Self>;
+		type BonsaiConversions = conversion_handler::ConversionHandler;
+	}
 
-impl pallet_orders::Config for Runtime {
-	type Event = Event;
-	type Accounting = pallet_accounting::Module<Self>;
-	type Prefunding = pallet_prefunding::Module<Self>;
-	type OrderConversions = conversion_handler::ConversionHandler;
-	type Bonsai = pallet_bonsai::Module<Self>;
-}
+	impl pallet_orders::Config for Runtime {
+		type Event = Event;
+		type Accounting = pallet_accounting::Module<Self>;
+		type Prefunding = pallet_prefunding::Module<Self>;
+		type OrderConversions = conversion_handler::ConversionHandler;
+		type Bonsai = pallet_bonsai::Module<Self>;
+	}
 
-impl pallet_prefunding::Config for Runtime {
-	type Event = Event;
-	type Currency = pallet_balances::Module<Self>;
-	type PrefundingConversions = conversion_handler::ConversionHandler;
-	type Accounting = pallet_accounting::Module<Self>;
-}
+	impl pallet_prefunding::Config for Runtime {
+		type Event = Event;
+		type Currency = pallet_balances::Module<Self>;
+		type PrefundingConversions = conversion_handler::ConversionHandler;
+		type Accounting = pallet_accounting::Module<Self>;
+	}
 
-impl pallet_teams::Config for Runtime {
-	type Event = Event;
-}
+	impl pallet_teams::Config for Runtime {
+		type Event = Event;
+	}
 
-impl pallet_timekeeping::Config for Runtime {
-	type Event = Event;
-	type Projects = Teams;
+	impl pallet_timekeeping::Config for Runtime {
+		type Event = Event;
+		type Projects = Teams;
+	}
 }
 
 construct_runtime!(

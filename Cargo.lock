@@ -4349,7 +4349,6 @@ dependencies = [
  "pallet-timestamp",
  "parity-scale-codec",
  "sp-arithmetic",
- "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
