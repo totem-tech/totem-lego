@@ -43,9 +43,6 @@ frame-support = { version = "3.0.0", default-features = false, path = "../../../
 frame-system = { version = "3.0.0", default-features = false, path = "../../../frame/system" }
 frame-system-benchmarking = { version = "3.0.0", default-features = false, path = "../../../frame/system/benchmarking", optional = true }
 frame-system-rpc-runtime-api = { version = "3.0.0", default-features = false, path = "../../../frame/system/rpc/runtime-api/" }
-pallet-accounting = { default-features = false, path = "../../../totem/pallets/accounting" }
-pallet-teams = { default-features = false, path = "../../../totem/pallets/teams" }
-pallet-timekeeping = { default-features = false, path = "../../../totem/pallets/timekeeping" }
 pallet-assets = { version = "3.0.0", default-features = false, path = "../../../frame/assets" }
 pallet-authority-discovery = { version = "3.0.0", default-features = false, path = "../../../frame/authority-discovery" }
 pallet-authorship = { version = "3.0.0", default-features = false, path = "../../../frame/authorship" }
@@ -85,6 +82,14 @@ pallet-utility = { version = "3.0.0", default-features = false, path = "../../..
 pallet-transaction-payment = { version = "3.0.0", default-features = false, path = "../../../frame/transaction-payment" }
 pallet-transaction-payment-rpc-runtime-api = { version = "3.0.0", default-features = false, path = "../../../frame/transaction-payment/rpc/runtime-api/" }
 pallet-vesting = { version = "3.0.0", default-features = false, path = "../../../frame/vesting" }
+
+pallet-accounting = { default-features = false, path = "../../../frame/totem/pallets/accounting" }
+pallet-archive = { default-features = false, path = "../../../frame/totem/pallets/archive" }
+pallet-bonsai = { default-features = false, path = "../../../frame/totem/pallets/bonsai" }
+pallet-orders = { default-features = false, path = "../../../frame/totem/pallets/orders" }
+pallet-prefunding = { default-features = false, path = "../../../frame/totem/pallets/prefunding" }
+pallet-teams = { default-features = false, path = "../../../frame/totem/pallets/teams" }
+pallet-timekeeping = { default-features = false, path = "../../../frame/totem/pallets/timekeeping" }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "4.0.0", path = "../../../utils/wasm-builder" }
