@@ -188,7 +188,10 @@ members = [
 	"utils/prometheus",
 	"utils/wasm-builder",
 	"totem/pallets/accounting",
+	"totem/pallets/archive",
 	"totem/pallets/bonsai",
+	"totem/pallets/orders",
+	"totem/pallets/prefunding",
 	"totem/pallets/teams",
 	"totem/pallets/timekeeping",
 ]

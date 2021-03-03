@@ -63,14 +63,12 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-mod traits;
-pub use traits::Validating;
-
 use frame_support::{fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;
 
+use totem_utils::traits::teams::Validating;
 use totem_utils::{ok, StorageMapExt};
 
 /// Reference supplied externally.

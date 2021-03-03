@@ -70,24 +70,17 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Accounting abstractions.
-mod traits;
-pub use traits::Storing;
-
-use frame_support::{codec::Codec, dispatch::EncodeLike, fail, pallet_prelude::*};
+use frame_support::{fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
-use sp_arithmetic::traits::BaseArithmetic;
-use sp_primitives::{crypto::UncheckedFrom, H256};
-use sp_runtime::traits::{Convert, Hash, Member};
+use sp_primitives::H256;
+use sp_runtime::traits::{Convert, Hash};
 use sp_std::prelude::*;
 
-//use pallet_orders::Validating as OrderValidating;
-pub trait OrderValidating<X, Y> {
-    fn is_order_party(o: X, h: Y) -> bool;
-} //TMP
-use pallet_teams::Validating as TeamsValidating;
-use pallet_timekeeping::Validating as TimeValidating;
+use totem_utils::traits::{
+    bonsai::Storing, orders::Validating as OrderValidating, teams::Validating as TeamsValidating,
+    timekeeping::Validating as TimeValidating,
+};
 use totem_utils::{ok, StorageMapExt};
 
 pub type RecordType = u16;

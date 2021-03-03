@@ -33,10 +33,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Totem.  If not, see <http://www.gnu.org/licenses/>.
 
-//! This is the main Totem Global Accounting Ledger
+//! The main Totem Global Accounting Ledger
 //!
 //! It handles all the ledger postings.
 //! The account number follows the chart of accounts definitions and is constructed as a concatenation of:
+//!
 //! * Financial Statement Type Number int length 1 (Mainly Balance Sheet, Profit and Loss, and Memorandum)
 //! * Account Category Number int length 1 (Mainly Assets, liabilities, Equity, Revenue and Expense, and non-balance sheet)
 //! * Account Category Group number int length 1 (e.g. grouping expenses: operating expense, other opex, personnel costs)
@@ -64,14 +65,16 @@
 //! Bank of America Account (Identity) has properties > Bank Current > Current Assets > Assets > Balance Sheet > 110100010000000
 //! Here the Identity has a 1:1 relationship to its properties defined in the account number that is being posted to
 //!
-//! Totem Live Accounting Primitives
+//! # Totem Live Accounting Primitives
+//!
 //! * All entities operating on the Totem Live Accounting network have XTX as the Functional Currency. This cannot be changed.
 //! * All accounting is carried out on Accrual basis.
 //! * Accounting periods close every block, although entities are free to choose a specific block for longer periods (month/year close is a nominated block number, periods are defined by  block number ranges)
 //! * In order to facilitate expense recognistion for example the period in which the transaction is recorded, may not necessrily be the period in which the
 //! transaction is recognised) adjustments must specify the period(block number or block range) to which they relate. By default the transaction block number and the period block number are identical on first posting.
 //!
-//! Curency Types
+//! # Curency Types
+//!
 //! The UI provides spot rate for live results for Period close reporting (also known as Reporting Currency or Presentation Currency), which is supported byt the exchange rates module.
 //! General rules for Currency conversion at Period Close follow GAAP rules and are carried out as follows:
 //! * Revenue recognition in the period when they occur, and expenses recognised (including asset consumption) in the same period as the revenue to which they relate
@@ -82,10 +85,6 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Accounting abstractions.
-mod traits;
-pub use traits::Posting;
-
 use frame_support::{codec::Codec, dispatch::EncodeLike, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
@@ -94,6 +93,7 @@ use sp_primitives::crypto::UncheckedFrom;
 use sp_runtime::traits::{Convert, Hash, Member};
 use sp_std::prelude::*;
 
+use totem_utils::traits::accounting::Posting;
 use totem_utils::{ok, StorageMapExt};
 
 /// Balance on an account can be negative
@@ -348,69 +348,23 @@ where
         let fee_hash: T::Hash = Self::get_pseudo_random_hash(payer.clone(), payer.clone());
 
         // Keys for posting
-        let mut forward_keys = Vec::<(
-            T::AccountId,
-            Account,
-            LedgerBalance,
-            bool,
-            T::Hash,
-            T::BlockNumber,
-            T::BlockNumber,
-        )>::with_capacity(3);
-        forward_keys.push((
-            payer.clone(),
-            account_1,
-            increase_amount,
-            true,
-            fee_hash,
-            current_block,
-            current_block_dupe,
-        ));
-        forward_keys.push((
-            payer.clone(),
-            account_2,
-            decrease_amount,
-            false,
-            fee_hash,
-            current_block,
-            current_block_dupe,
-        ));
+        let forward_keys = vec![
+            (payer.clone(), account_1, increase_amount, true, fee_hash, current_block, current_block_dupe),
+            (payer.clone(), account_2, decrease_amount, false, fee_hash, current_block, current_block_dupe),
+        ];
 
         // Reversal keys in case of errors
-        let mut reversal_keys = Vec::<(
-            T::AccountId,
-            Account,
-            LedgerBalance,
-            bool,
-            T::Hash,
-            T::BlockNumber,
-            T::BlockNumber,
-        )>::with_capacity(2);
-        reversal_keys.push((
-            payer.clone(),
-            account_1,
-            decrease_amount,
-            false,
-            fee_hash,
-            current_block,
-            current_block_dupe,
-        ));
-        reversal_keys.push((
-            payer.clone(),
-            account_2,
-            increase_amount,
-            true,
-            fee_hash,
-            current_block,
-            current_block_dupe,
-        ));
+        let reversal_keys = vec![
+            (payer.clone(), account_1, decrease_amount, false, fee_hash, current_block, current_block_dupe),
+            (payer.clone(), account_2, increase_amount, true, fee_hash, current_block, current_block_dupe),
+        ];
 
         let track_rev_keys =
             Vec::<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>::with_capacity(
                 2,
             );
 
-        Self::handle_multiposting_amounts(forward_keys.clone(), reversal_keys.clone(), track_rev_keys.clone())
+        Self::handle_multiposting_amounts(forward_keys, reversal_keys, track_rev_keys)
     }
 
     fn get_pseudo_random_hash(sender: T::AccountId, recipient: T::AccountId) -> T::Hash {
