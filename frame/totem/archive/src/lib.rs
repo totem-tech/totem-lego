@@ -46,6 +46,8 @@ use totem_utils::traits::timekeeping::Validating as TimeValidating;
 pub type RecordType = u16;
 type Archival = bool;
 
+pub use pallet::*;
+
 #[frame_support::pallet]
 pub mod pallet {
 

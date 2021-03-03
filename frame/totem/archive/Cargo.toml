@@ -10,16 +10,16 @@ version = '1.0.0'
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-totem-utils = { path = "../../utils" }
+totem-utils = { path = "../utils" }
 # primitives
-sp-std = { path = "../../../../primitives/std", default-features = false }
+sp-std = { path = "../../../primitives/std", default-features = false }
 # frame
-frame-support = { path = "../../../support", default-features = false }
-frame-system = { path = "../../../system", default-features = false }
+frame-support = { path = "../../support", default-features = false }
+frame-system = { path = "../../system", default-features = false }
 
 [dev-dependencies]
-#sr-io = { package = "sp-io", path = "../../../primitives/io" }
-#sp-primitives = { package = "sp-core", path = "../../../primitives/core" }
+#sr-io = { package = "sp-io", path = "../../primitives/io" }
+#sp-primitives = { package = "sp-core", path = "../../primitives/core" }
 
 [features]
 default = ["std"]
