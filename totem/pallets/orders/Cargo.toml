@@ -1,10 +1,10 @@
 [package]
 authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
-description = 'Accounting Engine Pallet'
+description = 'Totem Orders Module'
 edition = '2018'
 homepage = 'https://totemaccounting.com'
 license = 'GNU'
-name = 'pallet-accounting'
+name = 'pallet-orders'
 version = '1.0.0'
 # repository = 'https://github.com/substrate-developer-hub/substrate-pallet-template/'
 
@@ -12,16 +12,13 @@ version = '1.0.0'
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 totem-utils = { path = "../../utils" }
 # primitives
-sp-arithmetic = { path = "../../../primitives/arithmetic", default-features = false }
-sp-io = { path = "../../../primitives/io", default-features = false }
-sp-primitives = { package = "sp-core", path = "../../../primitives/core", default-features = false }
 sp-runtime = { path = "../../../primitives/runtime", default-features = false }
 sp-std = { path = "../../../primitives/std", default-features = false }
 # frame
 frame-support = { path = "../../../frame/support", default-features = false }
 frame-system = { path = "../../../frame/system", default-features = false }
-pallet-randomness = { package = "pallet-randomness-collective-flip", path = "../../../frame/randomness-collective-flip", default-features = false }
-pallet-timestamp = { path = "../../../frame/timestamp", default-features = false }
+# totem frame
+pallet-accounting = { package = "pallet-accounting", path = "../accounting", default-features = false }
 
 [dev-dependencies]
 #sr-io = { package = "sp-io", path = "../../../primitives/io" }
@@ -33,7 +30,5 @@ std = [
 	"codec/std",
 	"frame-support/std",
 	"frame-system/std",
-    "pallet-timestamp/std",
-	"sp-primitives/std",
     "sp-std/std",
 ]

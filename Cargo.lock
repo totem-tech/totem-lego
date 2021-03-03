@@ -1689,7 +1689,7 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "hex-literal 0.3.1",
+ "hex-literal",
  "linregress",
  "parity-scale-codec",
  "paste 1.0.4",
@@ -1730,7 +1730,7 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "hex-literal 0.3.1",
+ "hex-literal",
  "pallet-balances",
  "pallet-indices",
  "pallet-transaction-payment",
@@ -2035,7 +2035,7 @@ version = "0.3.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c287d25add322d9f9abdcdc5927ca398917996600182178774032e9f8258fedd"
 dependencies = [
- "proc-macro-hack 0.5.19",
+ "proc-macro-hack",
  "proc-macro2",
  "quote",
  "syn",
@@ -2099,7 +2099,7 @@ dependencies = [
  "memchr",
  "pin-project-lite 0.2.4",
  "pin-utils",
- "proc-macro-hack 0.5.19",
+ "proc-macro-hack",
  "proc-macro-nested",
  "slab",
 ]
@@ -2325,28 +2325,9 @@ checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
 
 [[package]]
 name = "hex-literal"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddc2928beef125e519d69ae1baa8c37ea2e0d3848545217f6db0179c5eb1d639"
-dependencies = [
- "hex-literal-impl",
- "proc-macro-hack 0.4.2",
-]
-
-[[package]]
-name = "hex-literal"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5af1f635ef1bc545d78392b136bfe1c9809e029023c84a3638a864a10b8819c8"
-
-[[package]]
-name = "hex-literal-impl"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "520870c3213943eb8d7803e80180d12a6c7ceb4ae74602544529d1643dc4ddda"
-dependencies = [
- "proc-macro-hack 0.4.2",
-]
 
 [[package]]
 name = "hex_fmt"
@@ -3930,7 +3911,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "futures 0.3.12",
- "hex-literal 0.3.1",
+ "hex-literal",
  "log",
  "nix",
  "node-executor",
@@ -4118,7 +4099,7 @@ dependencies = [
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
- "hex-literal 0.3.1",
+ "hex-literal",
  "node-primitives",
  "pallet-accounting",
  "pallet-assets",
@@ -4386,15 +4367,24 @@ version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "hex-literal 0.1.4",
  "pallet-randomness-collective-flip",
  "pallet-timestamp",
  "parity-scale-codec",
- "serde",
  "sp-arithmetic",
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "sp-std",
+ "totem-utils",
+]
+
+[[package]]
+name = "pallet-archive"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
  "sp-std",
  "totem-utils",
 ]
@@ -4537,16 +4527,8 @@ version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "hex-literal 0.1.4",
- "pallet-randomness-collective-flip",
- "pallet-teams",
- "pallet-timekeeping",
- "pallet-timestamp",
  "parity-scale-codec",
- "serde",
- "sp-arithmetic",
  "sp-core",
- "sp-io",
  "sp-runtime",
  "sp-std",
  "totem-utils",
@@ -4577,7 +4559,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.3.1",
+ "hex-literal",
  "pallet-balances",
  "parity-scale-codec",
  "serde",
@@ -4595,7 +4577,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.3.1",
+ "hex-literal",
  "pallet-balances",
  "pallet-contracts-primitives",
  "pallet-contracts-proc-macro",
@@ -4674,7 +4656,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.3.1",
+ "hex-literal",
  "pallet-balances",
  "pallet-scheduler",
  "parity-scale-codec",
@@ -4719,7 +4701,7 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "hex-literal 0.3.1",
+ "hex-literal",
  "pallet-balances",
  "parity-scale-codec",
  "serde",
@@ -4736,7 +4718,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.3.1",
+ "hex-literal",
  "pallet-balances",
  "parity-scale-codec",
  "serde",
@@ -4916,7 +4898,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.3.1",
+ "hex-literal",
  "pallet-mmr-primitives",
  "parity-scale-codec",
  "serde",
@@ -4932,7 +4914,7 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "hex-literal 0.3.1",
+ "hex-literal",
  "parity-scale-codec",
  "serde",
  "sp-api",
@@ -5026,6 +5008,35 @@ dependencies = [
  "sp-runtime",
  "sp-staking",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-orders"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-accounting",
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+ "totem-utils",
+]
+
+[[package]]
+name = "pallet-prefunding"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-accounting",
+ "pallet-balances",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "totem-utils",
 ]
 
 [[package]]
@@ -5252,14 +5263,7 @@ version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "hex-literal 0.1.4",
- "pallet-randomness-collective-flip",
- "pallet-timestamp",
  "parity-scale-codec",
- "serde",
- "sp-arithmetic",
- "sp-core",
- "sp-runtime",
  "sp-std",
  "totem-utils",
 ]
@@ -5270,16 +5274,7 @@ version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "hex-literal 0.1.4",
- "pallet-randomness-collective-flip",
- "pallet-teams",
- "pallet-timestamp",
  "parity-scale-codec",
- "serde",
- "sp-arithmetic",
- "sp-core",
- "sp-io",
- "sp-runtime",
  "sp-std",
  "totem-utils",
 ]
@@ -5406,7 +5401,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.3.1",
+ "hex-literal",
  "pallet-balances",
  "parity-scale-codec",
  "serde",
@@ -5649,7 +5644,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "45ca20c77d80be666aef2b45486da86238fabe33e38306bd3118fe4af33fa880"
 dependencies = [
  "paste-impl",
- "proc-macro-hack 0.5.19",
+ "proc-macro-hack",
 ]
 
 [[package]]
@@ -5664,7 +5659,7 @@ version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d95a7db200b97ef370c8e6de0088252f7e0dfff7d047a28528e47456c0fc98b6"
 dependencies = [
- "proc-macro-hack 0.5.19",
+ "proc-macro-hack",
 ]
 
 [[package]]
@@ -5986,24 +5981,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro-hack"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "463bf29e7f11344e58c9e01f171470ab15c925c6822ad75028cc1c0e1d1eb63b"
-dependencies = [
- "proc-macro-hack-impl",
-]
-
-[[package]]
-name = "proc-macro-hack"
 version = "0.5.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbf0c48bc1d91375ae5c3cd81e3722dff1abcf81a30960240640d223f59fe0e5"
-
-[[package]]
-name = "proc-macro-hack-impl"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38c47dcb1594802de8c02f3b899e2018c78291168a22c281be21ea0fb4796842"
 
 [[package]]
 name = "proc-macro-nested"
@@ -7121,7 +7101,7 @@ version = "0.9.0"
 dependencies = [
  "assert_matches",
  "derive_more",
- "hex-literal 0.3.1",
+ "hex-literal",
  "lazy_static",
  "libsecp256k1",
  "log",
@@ -7696,7 +7676,7 @@ dependencies = [
  "fdlimit",
  "futures 0.1.30",
  "futures 0.3.12",
- "hex-literal 0.3.1",
+ "hex-literal",
  "log",
  "parity-scale-codec",
  "parking_lot 0.11.1",
@@ -8520,7 +8500,7 @@ dependencies = [
  "hash-db",
  "hash256-std-hasher",
  "hex",
- "hex-literal 0.3.1",
+ "hex-literal",
  "impl-serde",
  "lazy_static",
  "libsecp256k1",
@@ -8875,7 +8855,7 @@ name = "sp-state-machine"
 version = "0.9.0"
 dependencies = [
  "hash-db",
- "hex-literal 0.3.1",
+ "hex-literal",
  "log",
  "num-traits",
  "parity-scale-codec",
@@ -8981,7 +8961,7 @@ version = "3.0.0"
 dependencies = [
  "criterion",
  "hash-db",
- "hex-literal 0.3.1",
+ "hex-literal",
  "memory-db",
  "parity-scale-codec",
  "sp-core",
@@ -9865,6 +9845,8 @@ version = "1.0.0"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

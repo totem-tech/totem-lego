@@ -37,6 +37,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod traits;
+
 use codec::{Decode, Encode, EncodeLike, FullCodec, FullEncode, WrapperTypeEncode};
 use frame_support::{dispatch::DispatchResultWithPostInfo, storage::StorageMap};
 
@@ -45,6 +47,7 @@ pub fn ok() -> DispatchResultWithPostInfo {
     Ok(().into())
 }
 
+/// In addition to `StorageMap`, says if the mutation succeded.
 pub enum Update {
     Done,
     KeyNotFound,

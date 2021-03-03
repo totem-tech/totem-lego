@@ -49,16 +49,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod tests;
-mod traits;
-pub use traits::Validating;
 
 use frame_support::{dispatch::EncodeLike, dispatch::Input, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
-use pallet_teams::Validating as ProjectValidating;
-
 use sp_std::prelude::*;
 
+use totem_utils::traits::{teams::Validating as ProjectValidating, timekeeping::Validating};
 use totem_utils::{ok, StorageMapExt};
 
 /// Number of pauses of the timer.
