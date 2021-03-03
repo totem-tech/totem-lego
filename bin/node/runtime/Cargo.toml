@@ -83,13 +83,13 @@ pallet-transaction-payment = { version = "3.0.0", default-features = false, path
 pallet-transaction-payment-rpc-runtime-api = { version = "3.0.0", default-features = false, path = "../../../frame/transaction-payment/rpc/runtime-api/" }
 pallet-vesting = { version = "3.0.0", default-features = false, path = "../../../frame/vesting" }
 
-pallet-accounting = { default-features = false, path = "../../../frame/totem/pallets/accounting" }
-pallet-archive = { default-features = false, path = "../../../frame/totem/pallets/archive" }
-pallet-bonsai = { default-features = false, path = "../../../frame/totem/pallets/bonsai" }
-pallet-orders = { default-features = false, path = "../../../frame/totem/pallets/orders" }
-pallet-prefunding = { default-features = false, path = "../../../frame/totem/pallets/prefunding" }
-pallet-teams = { default-features = false, path = "../../../frame/totem/pallets/teams" }
-pallet-timekeeping = { default-features = false, path = "../../../frame/totem/pallets/timekeeping" }
+pallet-accounting = { default-features = false, path = "../../../frame/totem/accounting" }
+pallet-archive = { default-features = false, path = "../../../frame/totem/archive" }
+pallet-bonsai = { default-features = false, path = "../../../frame/totem/bonsai" }
+pallet-orders = { default-features = false, path = "../../../frame/totem/orders" }
+pallet-prefunding = { default-features = false, path = "../../../frame/totem/prefunding" }
+pallet-teams = { default-features = false, path = "../../../frame/totem/teams" }
+pallet-timekeeping = { default-features = false, path = "../../../frame/totem/timekeeping" }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "4.0.0", path = "../../../utils/wasm-builder" }

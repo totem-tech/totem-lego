@@ -1002,14 +1002,42 @@ impl pallet_accounting::Config for Runtime {
 	type AccountingConversions = conversion_handler::ConversionHandler;
 }
 
-//impl pallet_teams::Config for Runtime {
-//	type Event = Event;
-//}
-//
-//impl pallet_timekeeping::Config for Runtime {
-//	type Event = Event;
-//	type Projects = Teams;
-//}
+impl pallet_archive::Config for Runtime {
+	type Event = Event;
+	type Timekeeping = pallet_timekeeping::Module<Self>;
+}
+
+impl pallet_bonsai::Config for Runtime {
+	type Event = Event;
+	type Orders = pallet_orders::Module<Self>;
+	type Projects = pallet_teams::Module<Self>;
+	type Timekeeping = pallet_timekeeping::Module<Self>;
+	type BonsaiConversions = conversion_handler::ConversionHandler;
+}
+
+impl pallet_orders::Config for Runtime {
+	type Event = Event;
+	type Accounting = pallet_accounting::Module<Self>;
+	type Prefunding = pallet_prefunding::Module<Self>;
+	type OrderConversions = conversion_handler::ConversionHandler;
+	type Bonsai = pallet_bonsai::Module<Self>;
+}
+
+impl pallet_prefunding::Config for Runtime {
+	type Event = Event;
+	type Currency = pallet_balances::Module<Self>;
+	type PrefundingConversions = conversion_handler::ConversionHandler;
+	type Accounting = pallet_accounting::Module<Self>;
+}
+
+impl pallet_teams::Config for Runtime {
+	type Event = Event;
+}
+
+impl pallet_timekeeping::Config for Runtime {
+	type Event = Event;
+	type Projects = Teams;
+}
 
 construct_runtime!(
 	pub enum Runtime where
@@ -1020,8 +1048,12 @@ construct_runtime!(
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		// Totem
 		Accounting: pallet_accounting::{Module, Call, Storage, Event<T>},
-		//Teams: pallet_teams::{Module, Call, Storage, Event<T>},
-		//Timekeeping: pallet_timekeeping::{Module, Call, Storage, Event<T>},
+		Archive: pallet_archive::{Module, Call, Storage, Event<T>},
+		Bonsai: pallet_bonsai::{Module, Call, Storage, Event<T>},
+		Orders: pallet_orders::{Module, Call, Storage, Event<T>},
+		Prefunding: pallet_prefunding::{Module, Call, Storage, Event<T>},
+		Teams: pallet_teams::{Module, Call, Storage, Event<T>},
+		Timekeeping: pallet_timekeeping::{Module, Call, Storage, Event<T>},
 		//
 		Utility: pallet_utility::{Module, Call, Event},
 		Babe: pallet_babe::{Module, Call, Storage, Config, ValidateUnsigned},
