@@ -37,6 +37,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod record_type;
 pub mod traits;
 
 use codec::{Decode, Encode, EncodeLike, FullCodec, FullEncode, WrapperTypeEncode};

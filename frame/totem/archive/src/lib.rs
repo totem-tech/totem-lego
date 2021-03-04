@@ -35,15 +35,15 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{fail, pallet_prelude::*};
+use frame_support::{dispatch::EncodeLike, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;
 
 use totem_utils::ok;
+use totem_utils::record_type::RecordType;
 use totem_utils::traits::timekeeping::Validating as TimeValidating;
 
-pub type RecordType = u16;
 type Archival = bool;
 
 pub use pallet::*;
@@ -92,11 +92,11 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             // check which type of record
             match record_type {
-                4000 => {
+                RecordType::Timekeeping => {
                     // module specific archive handling
                     if T::Timekeeping::validate_and_archive(who.clone(), bonsai_token, archive) {
                         // issue event
-                        Self::deposit_event(Event::RecordArchived(4000, who, bonsai_token, archive));
+                        Self::deposit_event(Event::RecordArchived(RecordType::Timekeeping, who, bonsai_token, archive));
                     }
                 }
                 _ => fail!("Unknown or unimplemented record type. Cannot archive record"),

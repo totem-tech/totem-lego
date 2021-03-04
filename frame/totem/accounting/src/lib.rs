@@ -336,8 +336,8 @@ where
         let increase_amount: LedgerBalance = fee_converted.into();
         let decrease_amount: LedgerBalance = to_invert.into();
 
-        let account_1: Account = 250500290000000u64; // debit  increase 250500290000000 Totem Transaction Fees
-        let account_2: Account = 110100040000000u64; // credit decrease 110100040000000 XTX Balance
+        let account_1: Account = 250_50029000_0000_u64; // debit  increase 250500290000000 Totem Transaction Fees
+        let account_2: Account = 110_10004000_0000_u64; // credit decrease 110100040000000 XTX Balance
 
         // This sets the change block and the applicable posting period. For this context they will always be
         // the same.

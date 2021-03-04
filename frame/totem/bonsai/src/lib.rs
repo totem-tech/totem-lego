@@ -77,13 +77,12 @@ use sp_primitives::H256;
 use sp_runtime::traits::{Convert, Hash};
 use sp_std::prelude::*;
 
+use totem_utils::record_type::RecordType;
 use totem_utils::traits::{
     bonsai::Storing, orders::Validating as OrderValidating, teams::Validating as TeamsValidating,
     timekeeping::Validating as TimeValidating,
 };
 use totem_utils::{ok, StorageMapExt};
-
-pub type RecordType = u16;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -214,7 +213,7 @@ impl<T: Config> Pallet<T> {
         // check which type of record
         // then check that the supplied hash is owned by the signer of the transaction
         match e {
-            3000 => {
+            RecordType::Teams => {
                 if let false = <<T as Config>::Projects as TeamsValidating<T::AccountId, T::Hash>>::is_project_owner(
                     o.clone(),
                     k.clone(),
@@ -223,7 +222,7 @@ impl<T: Config> Pallet<T> {
                     fail!("You cannot add a record you do not own");
                 }
             }
-            4000 => {
+            RecordType::Timekeeping => {
                 if let false =
                     <<T as Config>::Timekeeping as TimeValidating<T::AccountId, T::Hash>>::is_time_record_owner(
                         o.clone(),
@@ -234,7 +233,7 @@ impl<T: Config> Pallet<T> {
                     fail!("You cannot add a record you do not own");
                 }
             }
-            5000 => {
+            RecordType::Orders => {
                 if let false = <<T as Config>::Orders as OrderValidating<T::AccountId, T::Hash>>::is_order_party(
                     o.clone(),
                     k.clone(),
@@ -242,10 +241,6 @@ impl<T: Config> Pallet<T> {
                     Self::deposit_event(Event::ErrorRecordOwner(t));
                     fail!("You cannot add a record you do not own");
                 }
-            }
-            _ => {
-                Self::deposit_event(Event::ErrorUnknownType(t));
-                fail!("Unknown or unimplemented record type. Cannot store record");
             }
         }
         ok()

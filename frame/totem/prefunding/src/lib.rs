@@ -516,10 +516,10 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
         }
         // Deposit taken at this point. Note that if an error occurs beyond here we need to remove the locked funds.
         // Buyer
-        let account_1 = T::PrefundingConversions::convert(110100050000000u64); // debit  increase 110100050000000 Prefunding Account
-        let account_2 = T::PrefundingConversions::convert(110100040000000u64); // credit decrease 110100040000000 XTX Balance
-        let account_3 = T::PrefundingConversions::convert(360600020000000u64); // debit  increase 360600020000000 Runtime Ledger by Module
-        let account_4 = T::PrefundingConversions::convert(360600060000000u64); // debit  increase 360600060000000 Runtime Ledger Control
+        let account_1 = T::PrefundingConversions::convert(110_10005000_0000_u64); // debit  increase 110100050000000 Prefunding Account
+        let account_2 = T::PrefundingConversions::convert(110_10004000_0000_u64); // credit decrease 110100040000000 XTX Balance
+        let account_3 = T::PrefundingConversions::convert(360_60002000_0000_u64); // debit  increase 360600020000000 Runtime Ledger by Module
+        let account_4 = T::PrefundingConversions::convert(360_60006000_0000_u64); // debit  increase 360600060000000 Runtime Ledger Control
 
         // Keys for posting
         let forward_keys = vec![
@@ -600,16 +600,16 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
         let current_block_dupe = frame_system::Module::<T>::block_number();
 
         // Seller
-        let account_1 = T::PrefundingConversions::convert(110100080000000u64); // Debit  increase 110100080000000	Accounts receivable (Sales Control Account or Trade Debtor's Account)
-        let account_2 = T::PrefundingConversions::convert(240400010000000u64); // Credit increase 240400010000000	Product or Service Sales
-        let account_3 = T::PrefundingConversions::convert(360600010000000u64); // Debit  increase 360600010000000	Sales Ledger by Payer
-        let account_4 = T::PrefundingConversions::convert(360600050000000u64); // Debit  increase 360600050000000	Sales Ledger Control
+        let account_1 = T::PrefundingConversions::convert(110_10008000_0000_u64); // Debit  increase 110100080000000	Accounts receivable (Sales Control Account or Trade Debtor's Account)
+        let account_2 = T::PrefundingConversions::convert(240_40001000_0000_u64); // Credit increase 240400010000000	Product or Service Sales
+        let account_3 = T::PrefundingConversions::convert(360_60001000_0000_u64); // Debit  increase 360600010000000	Sales Ledger by Payer
+        let account_4 = T::PrefundingConversions::convert(360_60005000_0000_u64); // Debit  increase 360600050000000	Sales Ledger Control
 
         // Buyer
-        let account_5 = T::PrefundingConversions::convert(120200030000000u64); // Credit increase 120200030000000	Accounts payable
-        let account_6 = T::PrefundingConversions::convert(250500120000013u64); // Debit  increase 250500120000013	Labour
-        let account_7 = T::PrefundingConversions::convert(360600030000000u64); // Debit  increase 360600030000000	Purchase Ledger by Vendor
-        let account_8 = T::PrefundingConversions::convert(360600070000000u64); // Debit  increase 360600070000000	Purchase Ledger Control
+        let account_5 = T::PrefundingConversions::convert(120_20003000_0000_u64); // Credit increase 120200030000000	Accounts payable
+        let account_6 = T::PrefundingConversions::convert(250_50012000_0013_u64); // Debit  increase 250500120000013	Labour
+        let account_7 = T::PrefundingConversions::convert(360_60003000_0000_u64); // Debit  increase 360600030000000	Purchase Ledger by Vendor
+        let account_8 = T::PrefundingConversions::convert(360_60007000_0000_u64); // Debit  increase 360600070000000	Purchase Ledger Control
 
         // Keys for posting
         let forward_keys = vec![
@@ -694,17 +694,17 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
                 let current_block = frame_system::Module::<T>::block_number();
                 let current_block_dupe = frame_system::Module::<T>::block_number();
 
-                let account_1 = T::PrefundingConversions::convert(120200030000000u64); // 120200030000000	Debit  decrease Accounts payable
-                let account_2 = T::PrefundingConversions::convert(110100050000000u64); // 110100050000000	Credit decrease Totem Runtime Deposit (Escrow)
-                let account_3 = T::PrefundingConversions::convert(360600020000000u64); // 360600020000000	Credit decrease Runtime Ledger by Module
-                let account_4 = T::PrefundingConversions::convert(360600060000000u64); // 360600060000000	Credit decrease Runtime Ledger Control
-                let account_5 = T::PrefundingConversions::convert(360600030000000u64); // 360600030000000	Credit decrease Purchase Ledger by Vendor
-                let account_6 = T::PrefundingConversions::convert(360600070000000u64); // 360600070000000	Credit decrease Purchase Ledger Control
+                let account_1 = T::PrefundingConversions::convert(120_20003000_0000_u64); // 120200030000000	Debit  decrease Accounts payable
+                let account_2 = T::PrefundingConversions::convert(110_10005000_0000_u64); // 110100050000000	Credit decrease Totem Runtime Deposit (Escrow)
+                let account_3 = T::PrefundingConversions::convert(360_60002000_0000_u64); // 360600020000000	Credit decrease Runtime Ledger by Module
+                let account_4 = T::PrefundingConversions::convert(360_60006000_0000_u64); // 360600060000000	Credit decrease Runtime Ledger Control
+                let account_5 = T::PrefundingConversions::convert(360_60003000_0000_u64); // 360600030000000	Credit decrease Purchase Ledger by Vendor
+                let account_6 = T::PrefundingConversions::convert(360_60007000_0000_u64); // 360600070000000	Credit decrease Purchase Ledger Control
 
-                let account_7 = T::PrefundingConversions::convert(110100040000000u64); // 110100040000000	Debit  increase XTX Balance
-                let account_8 = T::PrefundingConversions::convert(110100080000000u64); // 110100080000000	Credit decrease Accounts receivable (Sales Control Account or Trade Debtor's Account)
-                let account_9 = T::PrefundingConversions::convert(360600010000000u64); // 360600010000000	Credit decrease Sales Ledger by Payer
-                let account_10 = T::PrefundingConversions::convert(360600050000000u64); // 360600050000000	Credit decrease Sales Ledger Control
+                let account_7 = T::PrefundingConversions::convert(110_10004000_0000_u64); // 110100040000000	Debit  increase XTX Balance
+                let account_8 = T::PrefundingConversions::convert(110_10008000_0000_u64); // 110100080000000	Credit decrease Accounts receivable (Sales Control Account or Trade Debtor's Account)
+                let account_9 = T::PrefundingConversions::convert(360_60001000_0000_u64); // 360600010000000	Credit decrease Sales Ledger by Payer
+                let account_10 = T::PrefundingConversions::convert(360_60005000_0000_u64); // 360600050000000	Credit decrease Sales Ledger Control
 
                 // Keys for posting
                 let forward_keys = vec![
