@@ -71,16 +71,6 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Archive types
-        /// 1000
-        /// 2000
-        /// 3000 Activities (previously Projects)
-        /// 4000 Timekeeping
-        /// 5000 Orders
-        /// 6000
-        /// 7000
-        /// 8000
-        /// 9000
         #[pallet::weight(0/*TODO*/)]
         fn archive_record(
             origin: OriginFor<T>,

@@ -136,13 +136,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// This function stores a record hash for BONSAI 2FA for couchDB
-        ///
-        /// Record types are the same as the Archive Record Types
-        /// * 3000 Activities (previously Projects)
-        /// * 4000 Timekeeping
-        /// * 5000 Orders
-        ///
+        /// Stores a record hash for BONSAI 2FA for couchDB.
         #[pallet::weight(0/*TODO*/)]
         fn update_record(
             origin: OriginFor<T>,
@@ -174,6 +168,7 @@ pub mod pallet {
                         Some(block) => {
                             let mut target_block =
                                 <T::BonsaiConversions as Convert<T::BlockNumber, u32>>::convert(block);
+                            //TODO: do not use a magic number. 4 blocks / minute?
                             target_block = target_block + 172800_u32;
                             // let mut target_deletion_block: T::BlockNumber = <T::BonsaiConversions as Convert<u32, T::BlockNumber>>::convert(target_block);
                             // cleanup 30 Days from when the transaction started, but did not complete
