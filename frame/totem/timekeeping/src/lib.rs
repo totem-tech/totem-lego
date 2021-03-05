@@ -66,27 +66,18 @@ pub type NumberOfBlocks = u64;
 
 pub type StartOrEndBlockNumber = NumberOfBlocks;
 
-/// submitted(0), accepted(1), rejected(2), disputed(3), blocked(4), invoiced(5), reason_code(0), reason text.
-
-/// Possible states are
-/// draft(0),
-/// submitted(1),
-/// disputed(100), can be resubmitted, if the current status is < 100 return this state
-/// rejected(200), can be resubmitted, if the current status is < 100 return this state
-/// accepted(300), can no longer be rejected or disputed, > 200 < 400
-/// invoiced(400), can no longer be rejected or disputed, > 300 < 500
-/// blocked(999),
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[repr(u16)]
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Decode, Encode, PartialEq, Eq)]
 pub enum StatusOfTimeRecord {
-    Draft = 0,
-    Submitted = 1,
-    Disputed = 100,
-    Rejected = 200,
-    Accepted = 300,
-    Invoiced = 400,
-    Blocked = 999,
+    Draft,
+    Submitted,
+    Disputed,
+    Rejected,
+    Accepted,
+    Invoiced,
+    Blocked,
 }
+impl EncodeLike<StatusOfTimeRecord> for u8 {}
 
 /// Not calendar period, but fiscal periods 1-15 (0-14).
 pub type PostingPeriod = u16;
@@ -559,13 +550,13 @@ mod pallet {
                 };
 
                 // Possible states are
-                // draft(0),
-                // submitted(1),
-                // disputed(100), can be resubmitted, if the current status is < 100 return this state
-                // rejected(200), can be resubmitted, if the current status is < 100 return this state
-                // accepted(300), can no longer be rejected or disputed, > 200 < 400
-                // invoiced(400), can no longer be rejected or disputed, > 300 < 500
-                // blocked(999),
+                // Draft,
+                // Submitted,
+                // Disputed, can be resubmitted, if the current status is < Disputed return this state
+                // Rejected, can be resubmitted, if the current status is < Disputed return this state
+                // Accepted, can no longer be rejected or disputed, > Rejected < Invoiced
+                // Invoiced, can no longer be rejected or disputed, > Accepted < Blocked
+                // Blocked,
 
                 // Submit
                 // project owner disputes, setting the state to 100... 100 can only be set if the current status is 0
@@ -1047,42 +1038,5 @@ impl<T: Config> Validating<T::AccountId, T::Hash> for Pallet<T> {
             }
             None => false,
         }
-    }
-}
-
-use core::convert::TryFrom;
-
-impl TryFrom<u16> for StatusOfTimeRecord {
-    type Error = ();
-
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Self::Draft),
-            1 => Ok(Self::Submitted),
-            100 => Ok(Self::Disputed),
-            200 => Ok(Self::Rejected),
-            300 => Ok(Self::Accepted),
-            400 => Ok(Self::Invoiced),
-            999 => Ok(Self::Blocked),
-            _ => Err(()),
-        }
-    }
-}
-
-impl EncodeLike<StatusOfTimeRecord> for u16 {}
-
-impl Decode for StatusOfTimeRecord {
-    fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
-        let mut buf = [0; 2];
-
-        input.read(&mut buf)?;
-        Self::try_from(u16::from_le_bytes(buf))
-            .map_err(|_| codec::Error::from("[StatusOfTimeRecord::decode] Value out of range"))
-    }
-}
-
-impl Encode for StatusOfTimeRecord {
-    fn encode(&self) -> Vec<u8> {
-        u16::to_le_bytes(*self as u16).into()
     }
 }

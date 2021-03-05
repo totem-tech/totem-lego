@@ -63,7 +63,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{fail, pallet_prelude::*};
+use frame_support::{dispatch::EncodeLike, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;
@@ -72,8 +72,18 @@ use totem_utils::traits::teams::Validating;
 use totem_utils::{ok, StorageMapExt};
 
 /// Reference supplied externally.
-//TODO make an enum (Cf bottom page)
-pub type ProjectStatus = u16;
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Decode, Encode, PartialEq, Eq)]
+pub enum ProjectStatus {
+    Open,
+    Reopen,
+    OnHold,
+    Abandon,
+    Cancel,
+    Close,
+    Delete,
+}
+impl EncodeLike<ProjectStatus> for u8 {}
 
 #[derive(PartialEq, Eq, Clone, Debug, Encode, Decode)]
 pub struct DeletedProject<AccountId, ProjectStatus> {
@@ -160,7 +170,7 @@ mod pallet {
 
             // proceed to store project
             let who = ensure_signed(origin)?;
-            let project_status: ProjectStatus = 0;
+            let project_status = ProjectStatus::Reopen;
 
             // TODO limit nr of Projects per Account.
             ProjectHashStatus::<T>::insert(project_hash.clone(), &project_status);
@@ -192,7 +202,7 @@ mod pallet {
             let deleted_project_struct = DeletedProject {
                 owned_by: project_owner.clone(),
                 deleted_by: changed_by,
-                status: 999,
+                status: ProjectStatus::Delete,
             };
 
             // retain all other projects except the one we want to delete
@@ -211,7 +221,7 @@ mod pallet {
                 deleted_project.push(deleted_project_struct)
             });
 
-            Self::deposit_event(Event::ProjectDeleted(project_hash, project_owner, changer, 999));
+            Self::deposit_event(Event::ProjectDeleted(project_hash, project_owner, changer, ProjectStatus::Delete));
 
             ok()
         }
@@ -262,7 +272,7 @@ mod pallet {
             // TODO Implement a sudo for cleaning data in cases where owner is lost
             // Otherwise onlu the owner can change the data
             ensure!(project_owner == changer, Error::<T>::ProjectCannotCloseNotOwned);
-            let project_status: ProjectStatus = 500;
+            let project_status = ProjectStatus::Close;
             ProjectHashStatus::<T>::insert(project_hash.clone(), &project_status);
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, project_status));
@@ -274,7 +284,7 @@ mod pallet {
         fn reopen_project(origin: OriginFor<T>, project_hash: T::Hash) -> DispatchResultWithPostInfo {
             // Can only reopen a project that is in status "closed"
             let project_status: ProjectStatus = match Self::project_hash_status(project_hash.clone()) {
-                Some(500) => 100,
+                Some(ProjectStatus::Close) => ProjectStatus::Reopen,
                 _ => fail!(Error::<T>::StatusWrong),
                 // None => return Err("Project has no status"),
             };
@@ -319,15 +329,6 @@ mod pallet {
             // let proposed_project_status: ProjectStatus = project_status.clone();
             let proposed_project_status = project_status.clone();
 
-            //TODO this should be an enum
-            // Open	0
-            // Reopen	100
-            // On Hold	200
-            // Abandon	300
-            // Cancel	400
-            // Close	500
-            // Delete	999
-
             // Project owner creates project, set status to 0
             // Project owner puts on hold, setting the state to 200... 200 can only be set if the current status is  <= 101
             // Project owner abandons, setting the state to 300... 300 can only be set if the current status is  <= 101
@@ -338,18 +339,19 @@ mod pallet {
             // Project owner other, setting the state to other value... cannot be set here.
 
             match current_project_status {
-                0 | 100 => {
-                    // can set 200, 300, 400, 500
+                ProjectStatus::Open | ProjectStatus::Reopen => {
                     match proposed_project_status {
-                        0 | 100 => fail!(Error::<T>::StatusWrong),
-                        200 | 300 | 400 | 500 => (),
+                        ProjectStatus::Open | ProjectStatus::Reopen => fail!(Error::<T>::StatusWrong),
+                        ProjectStatus::OnHold
+                        | ProjectStatus::Abandon
+                        | ProjectStatus::Cancel
+                        | ProjectStatus::Close => (),
                         _ => fail!(Error::<T>::StatusCannotApply),
                     };
                 }
-                200 | 300 | 500 => {
-                    // only set 100
+                ProjectStatus::OnHold | ProjectStatus::Abandon | ProjectStatus::Close => {
                     match proposed_project_status {
-                        100 => (),
+                        ProjectStatus::Reopen => (),
                         _ => fail!(Error::<T>::StatusCannotApply),
                     };
                 }
@@ -418,16 +420,11 @@ impl<T: Config> Validating<T::AccountId, T::Hash> for Pallet<T> {
         return valid;
     }
 
+    /// Checks that the status of the project exists and is open or reopened.
     fn is_project_valid(h: T::Hash) -> bool {
-        // set default return value
-        let mut valid: bool = false;
-
-        // check that the status of the project exists and is open or reopened.
-        match Self::project_hash_status(h.clone()) {
-            Some(0) | Some(100) => valid = true,
-            _ => return valid,
+        match Self::project_hash_status(h) {
+            Some(ProjectStatus::Open) | Some(ProjectStatus::Reopen) => true,
+            _ => false,
         }
-
-        return valid;
     }
 }
