@@ -442,11 +442,6 @@ mod pallet {
             ok()
         }
 
-        #[pallet::weight(0)]
-        fn foo(origin: OriginFor<T>, bar: Option<T::Hash>) -> DispatchResultWithPostInfo {
-            ok()
-        }
-
         #[pallet::weight(0/*TODO*/)]
         /// Worker submits/resubmits time record.
         fn submit_time(
