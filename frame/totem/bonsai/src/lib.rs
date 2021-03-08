@@ -82,7 +82,7 @@ use totem_utils::traits::{
     bonsai::Storing, orders::Validating as OrderValidating, teams::Validating as TeamsValidating,
     timekeeping::Validating as TimeValidating,
 };
-use totem_utils::{ok, StorageMapExt};
+use totem_utils::StorageMapExt;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -149,7 +149,7 @@ pub mod pallet {
             Self::check_remote_ownership(who.clone(), key.clone(), bonsai_token.clone(), record_type.clone())?;
             Self::insert_record(key.clone(), bonsai_token.clone())?;
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -187,11 +187,11 @@ pub mod pallet {
                             }
                         }
                     }
-                    TxList::<T>::mutate_(&list_key, |tx_list| tx_list.retain(|v| v != &key));
+                    TxList::<T>::mutate_default(&list_key, |tx_list| tx_list.retain(|v| v != &key));
                 }
             }
 
-            ok()
+            Ok(().into())
         }
     }
 
@@ -238,13 +238,13 @@ impl<T: Config> Pallet<T> {
                 }
             }
         }
-        ok()
+        Ok(().into())
     }
 
     fn insert_record(k: T::Hash, t: T::Hash) -> DispatchResultWithPostInfo {
         // TODO implement fee payment mechanism (currently just transaction fee)
         IsValidRecord::<T>::insert(k, t);
-        ok()
+        Ok(().into())
     }
 
     fn insert_uuid(u: T::Hash) -> DispatchResultWithPostInfo {
@@ -267,11 +267,11 @@ impl<T: Config> Pallet<T> {
             let current_block = <frame_system::Pallet<T>>::block_number();
             let default_bytes = b"nobody can save fiat currency now";
             let list_key: T::Hash = T::Hashing::hash(default_bytes.encode().as_slice());
-            TxList::<T>::mutate_(list_key, |tx_list| tx_list.push(u));
+            TxList::<T>::mutate_default(list_key, |tx_list| tx_list.push(u));
             IsStarted::<T>::insert(u, current_block);
         }
 
-        ok()
+        Ok(().into())
     }
 }
 

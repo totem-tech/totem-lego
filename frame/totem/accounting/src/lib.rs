@@ -93,7 +93,7 @@ use sp_runtime::traits::{Convert, Hash, Member};
 use sp_std::{prelude::*, vec};
 
 use totem_utils::traits::accounting::Posting;
-use totem_utils::{ok, StorageMapExt};
+use totem_utils::StorageMapExt;
 
 /// Balance on an account can be negative
 pub type LedgerBalance = i128;
@@ -256,16 +256,16 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::GlobalBalanceValueOverflow)?;
 
         PostingNumber::<T>::put(posting_index);
-        IdAccountPostingIdList::<T>::mutate_(&balance_key, |list| list.push(posting_index));
-        AccountsById::<T>::mutate_(&o, |accounts_by_id| accounts_by_id.retain(|h| h != &a));
-        AccountsById::<T>::mutate_(&o, |accounts_by_id| accounts_by_id.push(a));
+        IdAccountPostingIdList::<T>::mutate_default(&balance_key, |list| list.push(posting_index));
+        AccountsById::<T>::mutate_default(&o, |accounts_by_id| accounts_by_id.retain(|h| h != &a));
+        AccountsById::<T>::mutate_default(&o, |accounts_by_id| accounts_by_id.push(a));
         BalanceByLedger::<T>::insert(&balance_key, new_balance);
         PostingDetail::<T>::insert(&posting_key, detail);
         GlobalLedger::<T>::insert(&a, new_global_balance);
 
         Self::deposit_event(Event::LegderUpdate(o, a, c, posting_index));
 
-        ok()
+        Ok(().into())
     }
 }
 
@@ -312,7 +312,8 @@ where
                 }
             }
         }
-        ok()
+
+        Ok(().into())
     }
 
     /// This function simply returns the Totem escrow account address

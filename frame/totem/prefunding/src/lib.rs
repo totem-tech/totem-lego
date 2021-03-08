@@ -61,7 +61,7 @@ use sp_runtime::traits::{Convert, Hash};
 use sp_std::{prelude::*, vec};
 
 use totem_utils::traits::{accounting::Posting, prefunding::Encumbrance};
-use totem_utils::{ok, StorageMapExt};
+use totem_utils::StorageMapExt;
 
 type AccountOf<T> = <<T as Config>::Accounting as Posting<
     <T as frame_system::Config>::AccountId,
@@ -88,8 +88,19 @@ pub enum LockStatus {
 impl EncodeLike<LockStatus> for bool {}
 
 /// Generic Status for whatever the HashReference refers
-//TODO
-pub type Status = u16;
+#[repr(u8)]
+#[derive(Debug, Decode, Encode, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    Code0,
+    Code1,     // Submitted, Locked by sender.
+    Cancelled, //or Abandoned 50
+    Code100,
+    Code200,
+    Code300,
+    Invoiced, //400
+    Settled,  //500
+}
+impl EncodeLike<Status> for u8 {}
 
 /// Used for comparisons
 pub type ComparisonAmounts = u128;
@@ -342,7 +353,7 @@ impl<T: Config> Pallet<T> {
             fail!(Error::<T>::ErrorInsufficientPreFunds);
         }
 
-        ok()
+        Ok(().into())
     }
 
     /// Generate Prefund Id from hash  
@@ -368,7 +379,12 @@ impl<T: Config> Pallet<T> {
     /// check hash exists and is valid
     fn reference_valid(h: T::Hash) -> bool {
         match ReferenceStatus::<T>::get(&h) {
-            Some(0) | Some(1) | Some(100) | Some(200) | Some(300) | Some(400) => true,
+            Some(Status::Code0)
+            | Some(Status::Code1)
+            | Some(Status::Code100)
+            | Some(Status::Code200)
+            | Some(Status::Code300)
+            | Some(Status::Invoiced) => true,
             _ => false,
         }
     }
@@ -399,14 +415,14 @@ impl<T: Config> Pallet<T> {
         Prefunding::<T>::remove(&h);
         PrefundingHashOwner::<T>::remove(&h);
         ReferenceStatus::<T>::insert(&h, s); // This sets the status but does not remove the hash
-        OwnerPrefundingHashList::<T>::mutate_(&o, |owner_prefunding_hash_list| {
+        OwnerPrefundingHashList::<T>::mutate_default(&o, |owner_prefunding_hash_list| {
             owner_prefunding_hash_list.retain(|e| e != &h)
         });
 
         // Issue event
         Self::deposit_event(Event::PrefundingCancelled(o, h));
 
-        ok()
+        Ok(().into())
     }
 
     /// unlock & pay beneficiary with funds transfer and account updates (settlement of invoice)
@@ -430,13 +446,13 @@ impl<T: Config> Pallet<T> {
             // Note handling the account posting is done outside of this function
             (Unlocked, Locked) => {
                 match ReferenceStatus::<T>::get(&h) {
-                    Some(400) => {
+                    Some(Status::Invoiced) => {
                         // get details of lock
                         let details = Self::prefunding_hash_owner(&h).ok_or("Error fetching details")?;
                         // get details of prefunding
                         let prefunding = Self::prefunding(&h).ok_or("Error getting prefunding details")?;
                         // Cancel prefunding lock
-                        let status: Status = 500; // Settled
+                        let status = Status::Settled;
                         Self::cancel_prefunding_lock(details.0.clone(), h, status)?;
                         // transfer to beneficiary.
                         // TODO when currency conversion is implemnted the payment should be at the current rate for the currency
@@ -451,14 +467,14 @@ impl<T: Config> Pallet<T> {
             (Unlocked, Unlocked) => fail!(Error::<T>::ErrorNotAllowed1),
         }
 
-        ok()
+        Ok(().into())
     }
 
     /// set the status for the prefunding
     fn set_ref_status(h: T::Hash, s: Status) -> DispatchResultWithPostInfo {
         ReferenceStatus::<T>::insert(&h, s);
 
-        ok()
+        Ok(().into())
     }
 
     // TODO Check should be made for available balances, and if the amount submitted is more than the invoice amount.
@@ -555,18 +571,18 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
         Prefunding::<T>::insert(&prefunding_hash, prefunded);
 
         // Add reference hash to list of hashes
-        OwnerPrefundingHashList::<T>::mutate_(&who, |owner_prefunding_hash_list| {
+        OwnerPrefundingHashList::<T>::mutate_default(&who, |owner_prefunding_hash_list| {
             owner_prefunding_hash_list.push(prefunding_hash)
         });
 
         // Submitted, Locked by sender.
-        if let Err(_) = Self::set_ref_status(prefunding_hash, 1) {
+        if let Err(_) = Self::set_ref_status(prefunding_hash, Status::Code1) {
             fail!(Error::<T>::ErrorSettingStatus1);
         }
 
         Self::deposit_event(Event::PrefundingCompleted(uid));
 
-        ok()
+        Ok(().into())
     }
 
     /// Simple invoice. Does not include tax jurisdiction, tax amounts, freight, commissions, tariffs, discounts and other extended line item values
@@ -649,14 +665,14 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
         }
 
         // Add status processing
-        let new_status: Status = 400; // invoiced(400), can no longer be accepted,
+        let new_status = Status::Invoiced; // invoiced, can no longer be accepted,
         if let Err(_) = Self::set_ref_status(h, new_status) {
             fail!(Error::<T>::ErrorSettingStatus2);
         }
 
         Self::deposit_event(Event::InvoiceIssued(u));
 
-        ok()
+        Ok(().into())
     }
 
     // Settles invoice by unlocking funds and updates various relevant accounts and pays prefunded amount
@@ -774,7 +790,7 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
 
         Self::deposit_event(Event::InvoiceSettled(uid));
 
-        ok()
+        Ok(().into())
     }
 
     /// check owner (of hash) - if anything fails then returns false
@@ -876,7 +892,7 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
         // Issue event
         Self::deposit_event(Event::PrefundingLockSet(uid));
 
-        ok()
+        Ok(().into())
     }
 
     /// check beneficiary (of hash reference)
@@ -904,7 +920,7 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
             // Check if the dealine has passed. If not funds cannot be release
             (Locked, Unlocked) => {
                 if Self::prefund_deadline_passed(h) {
-                    let status: Status = 50; // Abandoned or Cancelled
+                    let status = Status::Cancelled; // Abandoned or Cancelled
                     if let Err(_) = Self::cancel_prefunding_lock(o.clone(), h, status) {
                         fail!(Error::<T>::ErrorCancelFailed2);
                     }
@@ -916,13 +932,13 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
             (Unlocked, Locked) => fail!(Error::<T>::ErrorNotAllowed6),
             (Unlocked, Unlocked) => {
                 // Owner has been  given permission by beneficiary to release funds
-                let status: Status = 50; // Abandoned or cancelled
+                let status = Status::Cancelled; // Abandoned or cancelled
                 if let Err(_) = Self::cancel_prefunding_lock(o.clone(), h, status) {
                     fail!(Error::<T>::ErrorCancellingPrefund);
                 }
             }
         }
 
-        ok()
+        Ok(().into())
     }
 }

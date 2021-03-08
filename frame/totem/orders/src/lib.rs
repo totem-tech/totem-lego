@@ -71,7 +71,7 @@ use sp_runtime::traits::Convert;
 use sp_std::{prelude::*, vec};
 
 use totem_utils::traits::{accounting::Posting, bonsai::Storing, orders::Validating, prefunding::Encumbrance};
-use totem_utils::{ok, StorageMapExt};
+use totem_utils::StorageMapExt;
 
 // Totem Config Types
 type AccountBalanceOf<T> = <<T as Config>::Accounting as Posting<
@@ -89,19 +89,45 @@ pub type UnLocked<T> = <<T as Config>::Prefunding as Encumbrance<
 >>::LockStatus;
 
 // Module Types
-type OrderStatus = u16; // Generic Status for whatever the HashReference refers to
 
-#[repr(u16)]
+#[repr(u8)]
+#[derive(Debug, Decode, Encode, Clone, Copy, PartialEq, Eq)]
+pub enum OrderStatus {
+    Submitted = ApprovalStatus::Submitted as u8,
+    Accepted = ApprovalStatus::Accepted as u8,
+    Rejected = ApprovalStatus::Rejected as u8,
+    Disputed,
+    Blocked,
+    Invoiced,
+    Settled,
+}
+impl EncodeLike<OrderStatus> for u8 {}
+impl Default for OrderStatus {
+    fn default() -> Self {
+        OrderStatus::Submitted
+    }
+}
+
+#[repr(u8)]
 #[derive(Debug, Decode, Encode, Clone, Copy, PartialEq, Eq)]
 pub enum ApprovalStatus {
-    Submitted = 0,
-    Accepted = 1,
-    Rejected = 2,
+    Submitted,
+    Accepted,
+    Rejected,
 }
-impl EncodeLike<ApprovalStatus> for u16 {}
+impl EncodeLike<ApprovalStatus> for u8 {}
 impl Default for ApprovalStatus {
     fn default() -> Self {
         ApprovalStatus::Submitted
+    }
+}
+impl From<ApprovalStatus> for OrderStatus {
+    fn from(o: ApprovalStatus) -> OrderStatus {
+        match o {
+            ApprovalStatus::Submitted => OrderStatus::Submitted,
+            ApprovalStatus::Accepted => OrderStatus::Accepted,
+            ApprovalStatus::Rejected => OrderStatus::Rejected,
+        }
     }
 }
 
@@ -111,7 +137,7 @@ pub struct OrderHeader<AccountId> {
     pub commander: AccountId,
     pub fulfiller: AccountId,
     pub approver: AccountId,
-    pub order_status: u16,
+    pub order_status: OrderStatus,
     pub approval_status: ApprovalStatus,
     pub buy_or_sell: u16,
     pub amount: i128,
@@ -285,14 +311,18 @@ pub mod pallet {
                 Some(order) => {
                     // Order is owned by sender, status unaccepted a
                     let approver: T::AccountId = order.approver;
-                    let order_status: u16 = order.order_status;
-                    if (approver.clone(), order_status) == (who, 0_u16) {
-                        Owner::<T>::mutate_(&order.commander, |owner| owner.retain(|v| v != &tx_keys_medium.record_id));
-                        Beneficiary::<T>::mutate_(&order.fulfiller, |owner| {
+                    let order_status = order.order_status;
+                    if (approver.clone(), order_status) == (who, OrderStatus::Submitted) {
+                        Owner::<T>::mutate_default(&order.commander, |owner| {
+                            owner.retain(|v| v != &tx_keys_medium.record_id)
+                        });
+                        Beneficiary::<T>::mutate_default(&order.fulfiller, |owner| {
                             owner.retain(|v| v != &tx_keys_medium.record_id)
                         });
                         // <Approver<T>>::mutate(&approver, |owner| {
-                        Approver::<T>::mutate_(approver, |owner| owner.retain(|v| v != &tx_keys_medium.record_id));
+                        Approver::<T>::mutate_default(approver, |owner| {
+                            owner.retain(|v| v != &tx_keys_medium.record_id)
+                        });
                         Postulate::<T>::remove(&tx_keys_medium.record_id);
                         Orders::<T>::remove(&tx_keys_medium.record_id);
                         OrderItems::<T>::remove(&tx_keys_medium.record_id);
@@ -305,7 +335,7 @@ pub mod pallet {
             }
             <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_keys_medium.tx_uid)?;
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -367,7 +397,7 @@ pub mod pallet {
                         // This is NOT an error but requires further processing by the approver.
                         // As this is a proposal against a parent order then associate the child with the parent
                         // This does not happen when it is a simple order
-                        Postulate::<T>::mutate_(&tx_keys_large.parent_id, |v| v.push(tx_keys_large.record_id));
+                        Postulate::<T>::mutate_default(&tx_keys_large.parent_id, |v| v.push(tx_keys_large.record_id));
                         // <TxList<T>>::mutate(list_key, |tx_list| tx_list.push(u));
                     }
                 }
@@ -375,7 +405,7 @@ pub mod pallet {
                     commander: who.clone(),
                     fulfiller: fulfiller.clone(),
                     approver: who.clone(),
-                    order_status: 0u16,
+                    order_status: OrderStatus::Submitted,
                     approval_status: approval_status,
                     buy_or_sell: buy_or_sell,
                     amount: total_amount,
@@ -389,7 +419,7 @@ pub mod pallet {
             <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_keys_large.tx_uid)?;
             Self::deposit_event(Event::OrderCreated(tx_keys_large.tx_uid.clone(), tx_keys_large.record_id));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -440,7 +470,7 @@ pub mod pallet {
 
             Self::deposit_event(Event::OrderCreated(tx_uid, order_hash));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -476,7 +506,7 @@ pub mod pallet {
 
             Self::deposit_event(Event::OrderUpdated(tx_uid));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -495,7 +525,7 @@ pub mod pallet {
             <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_uid)?;
             Self::deposit_event(Event::InvoiceSettled(h));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -533,7 +563,7 @@ pub mod pallet {
 
             <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_uid)?;
 
-            ok()
+            Ok(().into())
         }
     }
 
@@ -566,7 +596,7 @@ impl<T: Config> Pallet<T> {
         // You should gracefully exit after this function call in this case.
         let approved = c == a;
 
-        Approver::<T>::mutate_(&a, |approver| approver.push(h.clone()));
+        Approver::<T>::mutate_default(&a, |approver| approver.push(h.clone()));
 
         approved
     }
@@ -594,7 +624,7 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResultWithPostInfo {
         // Set order status to submitted by default
         // submitted(0), accepted(1), rejected(2), disputed(3), blocked(4), invoiced(5),
-        let order_status: OrderStatus = 0;
+        let order_status = OrderStatus::Submitted;
         let mut fulfiller_override: T::AccountId = fulfiller.clone();
 
         // TODO Rewrite this MARKET_ORDER reversing the bool. This is because the API open_closed will be replaced by market_order bool.
@@ -660,7 +690,7 @@ impl<T: Config> Pallet<T> {
         // claim hash in Bonsai
         <T::Bonsai as Storing<T::Hash>>::claim_data(order_hash.clone(), bonsai_token.clone())?;
 
-        ok()
+        Ok(().into())
     }
 
     /// Calls the prefunding module to lock funds. This does not perform an update or lock release
@@ -676,7 +706,7 @@ impl<T: Config> Pallet<T> {
             fail!(Error::<T>::ErrorInPrefunding7);
         }
 
-        ok()
+        Ok(().into())
     }
 
     /// Stores the order data and sets the order status.
@@ -688,34 +718,34 @@ impl<T: Config> Pallet<T> {
         i: Vec<OrderItem<T::Hash>>,
     ) -> DispatchResultWithPostInfo {
         // Set hash for commander
-        Owner::<T>::mutate_(&c, |owner| owner.push(o.clone()));
+        Owner::<T>::mutate_default(&c, |owner| owner.push(o.clone()));
         // This will be a market order if the fulfiller is the same as the commander
         // In this case do not set the beneficiary storage
         if c != f {
             // Set hash for fulfiller
-            Beneficiary::<T>::mutate_(&f, |beneficiary| beneficiary.push(o.clone()));
+            Beneficiary::<T>::mutate_default(&f, |beneficiary| beneficiary.push(o.clone()));
         }
         // Set details of Order
         Orders::<T>::insert(&o, h);
         OrderItems::<T>::insert(&o, i);
 
-        ok()
+        Ok(().into())
     }
 
     /// API This function is used to accept or reject the order by the named approver. Mainly used for the API
     fn change_approval_state(a: T::AccountId, h: T::Hash, s: ApprovalStatus, b: T::Hash) -> DispatchResultWithPostInfo {
         // is the supplied account the approver of the hash supplied?
         let mut order_hdr: OrderHeader<T::AccountId> = Self::orders(&h).ok_or("some error")?;
-        if a == order_hdr.approver && order_hdr.order_status == 0 {
+        if a == order_hdr.approver && order_hdr.order_status == OrderStatus::Submitted {
             match order_hdr.order_status {
-                0 | 2 => {
+                OrderStatus::Submitted | OrderStatus::Rejected => {
                     // can only change to approved (1)
                     match s {
                         ApprovalStatus::Accepted => (),
                         _ => fail!(Error::<T>::ErrorApprStatus),
                     }
                 }
-                1 => {
+                OrderStatus::Accepted => {
                     // Can only change to 0 or 2
                     match s {
                         ApprovalStatus::Submitted | ApprovalStatus::Rejected => (),
@@ -725,7 +755,7 @@ impl<T: Config> Pallet<T> {
                 _ => fail!(Error::<T>::ErrorApprStatus),
             }
             // All tests passed, set status to whatever.
-            order_hdr.order_status = s as u16;
+            order_hdr.order_status = s.into();
             Orders::<T>::insert(&h, order_hdr);
         } else {
             fail!(Error::<T>::ErrorNotApprover);
@@ -733,7 +763,7 @@ impl<T: Config> Pallet<T> {
 
         Self::deposit_event(Event::OrderStatusUpdate(b));
 
-        ok()
+        Ok(().into())
     }
 
     /// API Allows commander to change the order either before it is accepted by beneficiary, or
@@ -755,13 +785,13 @@ impl<T: Config> Pallet<T> {
         // check that the Order state is 0 or 2 (submitted or rejected)
         // check that the approval is 0 or 2 pending approval or rejected
         match order_hdr.order_status {
-            0 | 2 => {
+            OrderStatus::Submitted | OrderStatus::Rejected => {
                 match order_hdr.approval_status {
                     ApprovalStatus::Submitted | ApprovalStatus::Rejected => (), // submitted pending approval or rejected
                     ApprovalStatus::Accepted => fail!(Error::<T>::ErrorApproved),
                 }
             }
-            1 => fail!(Error::<T>::ErrorOrderStatus1),
+            OrderStatus::Accepted => fail!(Error::<T>::ErrorOrderStatus1),
             _ => fail!(Error::<T>::ErrorOrderStatus2),
         };
         // check that at least one of these has changed:
@@ -807,7 +837,7 @@ impl<T: Config> Pallet<T> {
             commander: commander.clone(),
             fulfiller: fulfiller.clone(),
             approver: approver.clone(),
-            order_status: 0,
+            order_status: OrderStatus::Submitted,
             approval_status: order_hdr.approval_status,
             buy_or_sell: order_hdr.buy_or_sell,
             amount: amount,
@@ -825,7 +855,7 @@ impl<T: Config> Pallet<T> {
         // change hash in Bonsai
         <T::Bonsai as Storing<T::Hash>>::claim_data(reference.clone(), bonsai_token.clone())?;
 
-        ok()
+        Ok(().into())
     }
 
     /// Used by the beneficiary (fulfiller) to accept, reject or invoice the order.
@@ -840,10 +870,10 @@ impl<T: Config> Pallet<T> {
         uid: T::Hash,
     ) -> DispatchResultWithPostInfo {
         match order.order_status {
-            0 => {
+            OrderStatus::Submitted => {
                 // Order not accepted yet. Update the status in this module
                 match s {
-                    1 => {
+                    OrderStatus::Accepted => {
                         // Order Accepted
                         // Update the prefunding status (confirm locked funds)
                         let lock: UnLocked<T> = <T::OrderConversions as Convert<bool, UnLocked<T>>>::convert(true);
@@ -854,7 +884,7 @@ impl<T: Config> Pallet<T> {
                             Err(_e) => fail!(Error::<T>::ErrorInPrefunding2),
                         }
                     }
-                    2 => {
+                    OrderStatus::Rejected => {
                         // order rejected
                         let lock: UnLocked<T> = <T::OrderConversions as Convert<bool, UnLocked<T>>>::convert(false);
                         // We do not need to set release state for releasing funds for fulfiller.
@@ -882,10 +912,10 @@ impl<T: Config> Pallet<T> {
                 }
             }
             // Order already in accepted state - Update the status
-            1 => {
+            OrderStatus::Accepted => {
                 match s {
-                    5 => {
-                        // Order Completed. Now we are going to issue the invoice.
+                    // Order Completed. Now we are going to issue the invoice.
+                    OrderStatus::Invoiced => {
                         match <T::Prefunding as Encumbrance<T::AccountId, T::Hash, T::BlockNumber>>::send_simple_invoice(
                             f.clone(),
                             order.commander.clone(),
@@ -900,7 +930,7 @@ impl<T: Config> Pallet<T> {
                     _ => fail!(Error::<T>::ErrorStatusNotAllowed2),
                 }
             }
-            2 | 5 => fail!(Error::<T>::ErrorStatusNotAllowed3),
+            OrderStatus::Rejected | OrderStatus::Invoiced => fail!(Error::<T>::ErrorStatusNotAllowed3),
             _ => fail!(Error::<T>::ErrorStatusNotAllowed4),
         }
         order.order_status = s;
@@ -909,7 +939,7 @@ impl<T: Config> Pallet<T> {
 
         Self::deposit_event(Event::OrderCompleted(uid));
 
-        ok()
+        Ok(().into())
     }
 
     /// Used by the buyer to accept or reject (TODO) the invoice that was raised by the seller.
@@ -921,15 +951,15 @@ impl<T: Config> Pallet<T> {
         uid: T::Hash,
     ) -> DispatchResultWithPostInfo {
         // check that this is the fulfiller
-        if order.order_status != 5 {
+        if order.order_status != OrderStatus::Invoiced {
             fail!(Error::<T>::ErrorOrderStatus3)
         }
 
         // Order has been invoiced. The buyer is now deciding to accept or other
         match s {
             // Invoice is disputed. TODO provide the ability to change the invoice and resubmit
-            3 => fail!(Error::<T>::ErrorNotImplmented1),
-            6 => {
+            OrderStatus::Disputed => fail!(Error::<T>::ErrorNotImplmented1),
+            OrderStatus::Settled => {
                 // Invoice Accepted. Now pay-up!.
                 match <T::Prefunding as Encumbrance<T::AccountId, T::Hash, T::BlockNumber>>::settle_prefunded_invoice(
                     o.clone(),
@@ -951,7 +981,7 @@ impl<T: Config> Pallet<T> {
         Orders::<T>::remove(&h);
         Orders::<T>::insert(&h, order);
 
-        ok()
+        Ok(().into())
     }
 
     /// This is used by any party that wants to accept a market order in whole or part.

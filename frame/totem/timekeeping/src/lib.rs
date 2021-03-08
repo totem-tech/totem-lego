@@ -56,7 +56,7 @@ use frame_system::pallet_prelude::*;
 use sp_std::prelude::*;
 
 use totem_utils::traits::{teams::Validating as ProjectValidating, timekeeping::Validating};
-use totem_utils::{ok, StorageMapExt};
+use totem_utils::{StorageMapExt};
 
 /// Number of pauses of the timer.
 pub type NumberOfBreaks = u16;
@@ -340,7 +340,7 @@ mod pallet {
 
             if who == worker {
                 // Adds project to list of projects assigned to worker address (in this case worker is project owner)
-                WorkerProjectsBacklogList::<T>::mutate_(&worker, |worker_projects_backlog_list| {
+                WorkerProjectsBacklogList::<T>::mutate_default(&worker, |worker_projects_backlog_list| {
                     worker_projects_backlog_list.push(project_hash.clone())
                 });
 
@@ -355,14 +355,14 @@ mod pallet {
                 // Adds project to list of projects assigned to worker address
                 // Worker does not therefore need to be notified of new project assigned to them, as it will appear in
                 // a list of projects
-                WorkerProjectsBacklogList::<T>::mutate_(&worker, |worker_projects_backlog_list| {
+                WorkerProjectsBacklogList::<T>::mutate_default(&worker, |worker_projects_backlog_list| {
                     worker_projects_backlog_list.push(project_hash.clone())
                 });
                 // set initial status
                 WorkerProjectsBacklogStatus::<T>::insert(&status_tuple_key, accepted_status);
 
                 // add worker to project team invitations, pending acceptance.
-                ProjectInvitesList::<T>::mutate_(&project_hash, |project_invites_list| {
+                ProjectInvitesList::<T>::mutate_default(&project_hash, |project_invites_list| {
                     project_invites_list.push(worker.clone())
                 });
             }
@@ -370,7 +370,7 @@ mod pallet {
             // issue event
             Self::deposit_event(Event::NotifyProjectWorker(worker, project_hash));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -415,12 +415,12 @@ mod pallet {
                             WorkerProjectsBacklogStatus::<T>::take(&status_tuple_key);
 
                             // Remove project assignment from list
-                            WorkerProjectsBacklogList::<T>::mutate_(&who, |worker_projects_backlog_list| {
+                            WorkerProjectsBacklogList::<T>::mutate_default(&who, |worker_projects_backlog_list| {
                                 worker_projects_backlog_list.retain(|h| h != &project_hash)
                             });
 
                             // remove from invitations list
-                            ProjectInvitesList::<T>::mutate_(&project_hash, |project_invites_list| {
+                            ProjectInvitesList::<T>::mutate_default(&project_hash, |project_invites_list| {
                                 project_invites_list.retain(|h| h != &who)
                             });
                         }
@@ -430,12 +430,12 @@ mod pallet {
                 }
             }
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0)]
         fn foo(origin: OriginFor<T>, bar: Option<T::Hash>) -> DispatchResultWithPostInfo {
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -503,12 +503,12 @@ mod pallet {
                 let time_hash: T::Hash = todo!(); //time_data.clone().using_encoded(<T as frame_system::Config>::Hashing::hash);
 
                 // Now update all time relevant records
-                WorkerTimeRecordsHashList::<T>::mutate_(&who, |worker_time_records_hash_list| {
+                WorkerTimeRecordsHashList::<T>::mutate_default(&who, |worker_time_records_hash_list| {
                     worker_time_records_hash_list.push(time_hash.clone())
                 });
 
                 // Add time hash to project list
-                ProjectTimeRecordsHashList::<T>::mutate_(&project_hash, |project_time_hash_list| {
+                ProjectTimeRecordsHashList::<T>::mutate_default(&project_hash, |project_time_hash_list| {
                     project_time_hash_list.push(time_hash.clone())
                 });
 
@@ -644,7 +644,7 @@ mod pallet {
                 Self::update_time_record(original_time_key, old_time_record)?;
             }
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -712,7 +712,7 @@ mod pallet {
             Self::update_time_record(original_time_key, changing_time_record)?;
             Self::deposit_event(Event::SetAuthoriseStatus(who));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -732,7 +732,7 @@ mod pallet {
             // Set StatusOfTimeRecord
             // invoiced,
             Self::deposit_event(Event::InvoiceTime(who));
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -747,7 +747,7 @@ mod pallet {
             Self::deposit_event(Event::PayTime(who));
             // Self::lock_time_record(who.clone(), project_hash.clone(), input_time_hash.clone());
             Self::deposit_event(Event::LockTimeRecord());
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -758,7 +758,7 @@ mod pallet {
             _input_time_hash: T::Hash,
         ) -> DispatchResultWithPostInfo {
             Self::deposit_event(Event::LockTimeRecord());
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -769,7 +769,7 @@ mod pallet {
             _input_time_hash: T::Hash,
         ) -> DispatchResultWithPostInfo {
             Self::deposit_event(Event::UnLockTimeRecord());
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -781,7 +781,7 @@ mod pallet {
         ) -> DispatchResultWithPostInfo {
             // check that you are not banning is not yourself!
             Self::deposit_event(Event::Banned());
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -792,7 +792,7 @@ mod pallet {
             _worker: T::AccountId,
         ) -> DispatchResultWithPostInfo {
             Self::deposit_event(Event::UnBanned());
-            ok()
+            Ok(().into())
         }
     }
 
@@ -825,11 +825,13 @@ impl<T: Config> Pallet<T> {
         let status_tuple_key = (project_hash.clone(), who.clone());
 
         // add worker to project team
-        ProjectWorkersList::<T>::mutate_(&project_hash, |project_workers_list| project_workers_list.push(who.clone()));
+        ProjectWorkersList::<T>::mutate_default(&project_hash, |project_workers_list| {
+            project_workers_list.push(who.clone())
+        });
 
         // Remove from notifications list
-        ProjectInvitesList::<T>::mutate(&project_hash, |project_invites_list| {
-            Some(project_invites_list.as_mut()?.retain(|h| h != &who))
+        ProjectInvitesList::<T>::mutate_default(&project_hash, |project_invites_list| {
+            project_invites_list.retain(|h| h != &who)
         });
 
         // set new status to true
@@ -838,7 +840,7 @@ impl<T: Config> Pallet<T> {
         // issue event
         Self::deposit_event(Event::WorkerAcceptanceStatus(who, project_hash, accepted_status));
 
-        ok()
+        Ok(().into())
     }
 
     // Time record is remove (if it exists) and reinserted
@@ -862,7 +864,7 @@ impl<T: Config> Pallet<T> {
         // issue event
         Self::deposit_event(Event::SubmitedTimeRecord(k));
 
-        ok()
+        Ok(().into())
     }
 
     // Updates the total number of blocks overall.
@@ -891,7 +893,7 @@ impl<T: Config> Pallet<T> {
 
         Self::deposit_event(Event::IncreaseTotalBlocks(a, r, n));
 
-        ok()
+        Ok(().into())
     }
 
     // Performs reversal of total time booked against project and other storage:
@@ -919,7 +921,7 @@ impl<T: Config> Pallet<T> {
 
         Self::deposit_event(Event::DecreaseTotalBlocks(a, r, n));
 
-        ok()
+        Ok(().into())
     }
 
     fn set_project_time_archive(
@@ -939,14 +941,14 @@ impl<T: Config> Pallet<T> {
 
                 // TODO Implement lock on record, then in other sections check the lock status.
                 // Push to archive
-                ProjectTimeRecordsHashListArchive::<T>::mutate_(
+                ProjectTimeRecordsHashListArchive::<T>::mutate_default(
                     &project_hash,
                     |project_time_records_hash_list_archive| {
                         project_time_records_hash_list_archive.push(time_hash.clone())
                     },
                 );
                 // Retain all others except
-                ProjectTimeRecordsHashList::<T>::mutate_(&project_hash, |project_time_records_hash_list| {
+                ProjectTimeRecordsHashList::<T>::mutate_default(&project_hash, |project_time_records_hash_list| {
                     project_time_records_hash_list.retain(|h| h != &time_hash)
                 });
             }
@@ -959,11 +961,11 @@ impl<T: Config> Pallet<T> {
                     .ok_or("This record has either been archived already or does not exist!")?;
                 // TODO Implement unlock on record.
                 // retrieve from archive
-                ProjectTimeRecordsHashList::<T>::mutate_(&project_hash, |project_time_records_hash_list| {
+                ProjectTimeRecordsHashList::<T>::mutate_default(&project_hash, |project_time_records_hash_list| {
                     project_time_records_hash_list.push(time_hash.clone())
                 });
                 // remove from archive
-                ProjectTimeRecordsHashListArchive::<T>::mutate_(
+                ProjectTimeRecordsHashListArchive::<T>::mutate_default(
                     &project_hash,
                     |project_time_records_hash_list_archive| {
                         project_time_records_hash_list_archive.retain(|h| h != &time_hash)
@@ -972,7 +974,7 @@ impl<T: Config> Pallet<T> {
             }
         }
 
-        ok()
+        Ok(().into())
     }
 
     fn set_worker_time_archive(owner: T::AccountId, time_hash: T::Hash, archive: bool) -> DispatchResultWithPostInfo {
@@ -987,11 +989,14 @@ impl<T: Config> Pallet<T> {
                     .ok_or("This record has either been archived already or does not exist!")?;
                 // TODO Implement lock on record, then in other sections check the lock status.
                 // Push to archive
-                WorkerTimeRecordsHashListArchive::<T>::mutate_(&owner, |worker_time_records_hash_list_archive| {
-                    worker_time_records_hash_list_archive.push(time_hash.clone())
-                });
+                WorkerTimeRecordsHashListArchive::<T>::mutate_default(
+                    &owner,
+                    |worker_time_records_hash_list_archive| {
+                        worker_time_records_hash_list_archive.push(time_hash.clone())
+                    },
+                );
                 // Retain all others except
-                WorkerTimeRecordsHashList::<T>::mutate_(&owner, |worker_time_records_hash_list| {
+                WorkerTimeRecordsHashList::<T>::mutate_default(&owner, |worker_time_records_hash_list| {
                     worker_time_records_hash_list.retain(|h| h != &time_hash)
                 });
             }
@@ -1006,17 +1011,20 @@ impl<T: Config> Pallet<T> {
                 // TODO Implement unlock on record.
 
                 // Retrieve from archive
-                WorkerTimeRecordsHashList::<T>::mutate_(&owner, |worker_time_records_hash_list| {
+                WorkerTimeRecordsHashList::<T>::mutate_default(&owner, |worker_time_records_hash_list| {
                     worker_time_records_hash_list.push(time_hash.clone())
                 });
                 // Retain all others except
-                WorkerTimeRecordsHashListArchive::<T>::mutate_(&owner, |worker_time_records_hash_list_archive| {
-                    worker_time_records_hash_list_archive.retain(|h| h != &time_hash)
-                });
+                WorkerTimeRecordsHashListArchive::<T>::mutate_default(
+                    &owner,
+                    |worker_time_records_hash_list_archive| {
+                        worker_time_records_hash_list_archive.retain(|h| h != &time_hash)
+                    },
+                );
             }
         }
 
-        ok()
+        Ok(().into())
     }
 }
 

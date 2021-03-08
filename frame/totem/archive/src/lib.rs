@@ -40,7 +40,6 @@ use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;
 
-use totem_utils::ok;
 use totem_utils::record_type::RecordType;
 use totem_utils::traits::timekeeping::Validating as TimeValidating;
 
@@ -92,7 +91,7 @@ pub mod pallet {
                 _ => fail!("Unknown or unimplemented record type. Cannot archive record"),
             }
 
-            ok()
+            Ok(().into())
         }
     }
 

@@ -69,7 +69,7 @@ use frame_system::pallet_prelude::*;
 use sp_std::prelude::*;
 
 use totem_utils::traits::teams::Validating;
-use totem_utils::{ok, StorageMapExt};
+use totem_utils::StorageMapExt;
 
 /// Reference supplied externally.
 #[repr(u8)]
@@ -175,11 +175,13 @@ mod pallet {
             // TODO limit nr of Projects per Account.
             ProjectHashStatus::<T>::insert(project_hash.clone(), &project_status);
             ProjectHashOwner::<T>::insert(project_hash.clone(), &who);
-            OwnerProjectsList::<T>::mutate_(&who, |owner_projects_list| owner_projects_list.push(project_hash.clone()));
+            OwnerProjectsList::<T>::mutate_default(&who, |owner_projects_list| {
+                owner_projects_list.push(project_hash.clone())
+            });
 
             Self::deposit_event(Event::ProjectRegistered(project_hash, who));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -206,7 +208,7 @@ mod pallet {
             };
 
             // retain all other projects except the one we want to delete
-            OwnerProjectsList::<T>::mutate_(&project_owner, |owner_projects_list| {
+            OwnerProjectsList::<T>::mutate_default(&project_owner, |owner_projects_list| {
                 owner_projects_list.retain(|h| h != &project_hash)
             });
 
@@ -217,13 +219,13 @@ mod pallet {
             ProjectHashStatus::<T>::remove(project_hash.clone());
 
             // record the fact of deletion by whom
-            DeletedProjects::<T>::mutate_(project_hash.clone(), |deleted_project| {
+            DeletedProjects::<T>::mutate_default(project_hash.clone(), |deleted_project| {
                 deleted_project.push(deleted_project_struct)
             });
 
             Self::deposit_event(Event::ProjectDeleted(project_hash, project_owner, changer, ProjectStatus::Delete));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -246,17 +248,19 @@ mod pallet {
             ensure!(project_owner == changer, Error::<T>::ProjectCannotReassignNotOwned);
 
             // retain all other projects except the one we want to reassign
-            OwnerProjectsList::<T>::mutate_(&project_owner, |owner_projects_list| {
+            OwnerProjectsList::<T>::mutate_default(&project_owner, |owner_projects_list| {
                 owner_projects_list.retain(|h| h != &project_hash)
             });
 
             // Set new owner for hash
             ProjectHashOwner::<T>::insert(project_hash.clone(), &new_owner);
-            OwnerProjectsList::<T>::mutate_(&new_owner, |owner_projects_list| owner_projects_list.push(project_hash));
+            OwnerProjectsList::<T>::mutate_default(&new_owner, |owner_projects_list| {
+                owner_projects_list.push(project_hash)
+            });
 
             Self::deposit_event(Event::ProjectReassigned(project_hash, new_owner, changed_by));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -277,7 +281,7 @@ mod pallet {
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, project_status));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -303,7 +307,7 @@ mod pallet {
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, project_status));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -364,7 +368,7 @@ mod pallet {
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, allowed_project_status));
 
-            ok()
+            Ok(().into())
         }
     }
 
