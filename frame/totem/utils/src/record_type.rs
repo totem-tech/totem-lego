@@ -1,4 +1,4 @@
-use frame_support::{dispatch::EncodeLike, fail, pallet_prelude::*};
+use frame_support::{dispatch::EncodeLike, pallet_prelude::*};
 
 #[repr(u8)]
 #[derive(Decode, Encode, Debug, Clone, Copy, PartialEq)]

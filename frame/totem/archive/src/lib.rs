@@ -35,7 +35,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{dispatch::EncodeLike, fail, pallet_prelude::*};
+use frame_support::{fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;

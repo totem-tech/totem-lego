@@ -110,18 +110,15 @@ pub type ReasonCodeType = u16;
 pub type BanStatus = bool;
 
 /// Reason why the code changes.
-#[derive(PartialEq, Eq, Clone, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode, Default)]
 pub struct ReasonCodeStruct(ReasonCode, ReasonCodeType);
 
 /// Status of the code changes.
-#[derive(PartialEq, Eq, Clone, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode, Default)]
 pub struct BannedStruct(BanStatus, ReasonCodeStruct);
 
 /// The individual time record.
-#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Encode, Decode, Default)]
 pub struct Timekeeper<
     AccountId,
     ReferenceHash,
@@ -442,11 +439,6 @@ mod pallet {
                 }
             }
 
-            ok()
-        }
-
-        #[pallet::weight(0)]
-        fn foo(origin: OriginFor<T>, bar: Option<T::Hash>) -> DispatchResultWithPostInfo {
             ok()
         }
 

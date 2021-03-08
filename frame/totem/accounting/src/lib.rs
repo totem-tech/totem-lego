@@ -90,7 +90,7 @@ use frame_system::pallet_prelude::*;
 
 use sp_arithmetic::traits::BaseArithmetic;
 use sp_runtime::traits::{Convert, Hash, Member};
-use sp_std::prelude::*;
+use sp_std::{prelude::*, vec};
 
 use totem_utils::traits::accounting::Posting;
 use totem_utils::{ok, StorageMapExt};

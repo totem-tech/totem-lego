@@ -75,8 +75,7 @@ use totem_utils::{ok, StorageMapExt};
 //TODO make an enum (Cf bottom page)
 pub type ProjectStatus = u16;
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode)]
 pub struct DeletedProject<AccountId, ProjectStatus> {
     pub owned_by: AccountId,
     pub deleted_by: AccountId,

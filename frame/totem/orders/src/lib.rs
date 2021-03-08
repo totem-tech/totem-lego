@@ -64,11 +64,11 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{codec::Codec, dispatch::EncodeLike, fail, pallet_prelude::*};
+use frame_support::{dispatch::EncodeLike, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
 use sp_runtime::traits::Convert;
-use sp_std::prelude::*;
+use sp_std::{prelude::*, vec};
 
 use totem_utils::traits::{accounting::Posting, bonsai::Storing, orders::Validating, prefunding::Encumbrance};
 use totem_utils::{ok, StorageMapExt};
@@ -106,8 +106,7 @@ impl Default for ApprovalStatus {
 }
 
 /// The order header: contains common values for all items
-#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Encode, Decode, Default)]
 pub struct OrderHeader<AccountId> {
     pub commander: AccountId,
     pub fulfiller: AccountId,
@@ -122,8 +121,7 @@ pub struct OrderHeader<AccountId> {
     pub due_date: u32,
 }
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode, Default)]
 pub struct OrderItem<Hash> {
     pub product: Hash,
     pub unit_price: i128,
@@ -131,8 +129,7 @@ pub struct OrderItem<Hash> {
     pub unit_of_measure: u16,
 }
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode, Default)]
 pub struct TXKeysL<Hash> {
     pub record_id: Hash,
     pub parent_id: Hash,
@@ -140,16 +137,14 @@ pub struct TXKeysL<Hash> {
     pub tx_uid: Hash,
 }
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode, Default)]
 pub struct TXKeysM<Hash> {
     pub record_id: Hash,
     pub bonsai_token: Hash,
     pub tx_uid: Hash,
 }
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode, Default)]
 pub struct TXKeysS<Hash> {
     pub bonsai_token: Hash,
     pub tx_uid: Hash,
