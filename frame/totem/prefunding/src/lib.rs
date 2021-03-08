@@ -58,7 +58,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 
 use sp_runtime::traits::{Convert, Hash};
-use sp_std::prelude::*;
+use sp_std::{prelude::*, vec};
 
 use totem_utils::traits::{accounting::Posting, prefunding::Encumbrance};
 use totem_utils::{ok, StorageMapExt};
