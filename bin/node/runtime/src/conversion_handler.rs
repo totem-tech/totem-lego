@@ -26,9 +26,16 @@ impl Convert<u128, i128> for ConversionHandler {
     }
 }
 
-// Takes integer u64 and converts for use with AccountOf<T> type or BlockNumber
+// Takes integer u64 and converts for use with AccountOf<T> type
 impl Convert<u64, u64> for ConversionHandler {
     fn convert(x: u64) -> u64 {
+        x
+    }
+}
+
+// Takes integer u64 and converts for use with BlockNumber
+impl Convert<u32, u32> for ConversionHandler {
+    fn convert(x: u32) -> u32 {
         x
     }
 }
@@ -76,5 +83,15 @@ impl Convert<Vec<u8>, [u8; 8]> for ConversionHandler {
 impl Convert<Hash, Hash> for ConversionHandler {
     fn convert(x: Hash) -> Hash {
         x
+    }
+}
+
+impl Convert<bool, pallet_prefunding::LockStatus> for ConversionHandler {
+    fn convert(x: bool) -> pallet_prefunding::LockStatus {
+        if x {
+            pallet_prefunding::LockStatus::Locked
+        } else {
+            pallet_prefunding::LockStatus::Unlocked
+        }
     }
 }

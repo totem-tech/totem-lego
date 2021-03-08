@@ -33,8 +33,51 @@
 // You should have received a copy of the GNU General Public License
 // along with Totem.  If not, see <http://www.gnu.org/licenses/>.
 
-pub trait Validating<AccountId, Hash> {
-    fn is_time_record_owner(o: AccountId, h: Hash) -> bool;
+//! Various cross-pallet utils.
 
-    fn validate_and_archive(o: AccountId, h: Hash, a: bool) -> bool;
+#![cfg_attr(not(feature = "std"), no_std)]
+
+pub mod record_type;
+pub mod traits;
+
+use codec::{Decode, Encode, EncodeLike, FullCodec, FullEncode, WrapperTypeEncode};
+use frame_support::{dispatch::DispatchResultWithPostInfo, storage::StorageMap};
+
+/// Easy return of an OK dispatch with no content.
+pub fn ok() -> DispatchResultWithPostInfo {
+    Ok(().into())
+}
+
+/// In addition to `StorageMap`, says if the mutation succeded.
+pub enum Update {
+    Done,
+    KeyNotFound,
+}
+
+/// Adds behavior to `StorageMap`s.
+pub trait StorageMapExt<K, V>
+where
+    Self: StorageMap<K, V>,
+    K: FullEncode + Encode + EncodeLike,
+    V: FullCodec + Decode + FullEncode + Encode + EncodeLike + WrapperTypeEncode,
+{
+    /// If the key exists in the map, modifies it with the provided function, and returns `Update::Done`.
+    /// Otherwise, it does nothing and returns `Update::KeyNotFound`.
+    fn mutate_<KeyArg: EncodeLike<K>, F: FnOnce(&mut V)>(key: KeyArg, f: F) -> Update {
+        Self::mutate_exists(key, |option| match option.as_mut() {
+            Some(value) => {
+                f(value);
+                Update::Done
+            }
+            None => Update::KeyNotFound,
+        })
+    }
+}
+
+impl<T, K, V> StorageMapExt<K, V> for T
+where
+    T: StorageMap<K, V>,
+    K: FullEncode + Encode + EncodeLike,
+    V: FullCodec + Decode + FullEncode + Encode + EncodeLike + WrapperTypeEncode,
+{
 }

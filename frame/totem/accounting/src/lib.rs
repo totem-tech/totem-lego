@@ -33,10 +33,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Totem.  If not, see <http://www.gnu.org/licenses/>.
 
-//! This is the main Totem Global Accounting Ledger
+//! The main Totem Global Accounting Ledger
 //!
 //! It handles all the ledger postings.
 //! The account number follows the chart of accounts definitions and is constructed as a concatenation of:
+//!
 //! * Financial Statement Type Number int length 1 (Mainly Balance Sheet, Profit and Loss, and Memorandum)
 //! * Account Category Number int length 1 (Mainly Assets, liabilities, Equity, Revenue and Expense, and non-balance sheet)
 //! * Account Category Group number int length 1 (e.g. grouping expenses: operating expense, other opex, personnel costs)
@@ -64,14 +65,16 @@
 //! Bank of America Account (Identity) has properties > Bank Current > Current Assets > Assets > Balance Sheet > 110100010000000
 //! Here the Identity has a 1:1 relationship to its properties defined in the account number that is being posted to
 //!
-//! Totem Live Accounting Primitives
+//! # Totem Live Accounting Primitives
+//!
 //! * All entities operating on the Totem Live Accounting network have XTX as the Functional Currency. This cannot be changed.
 //! * All accounting is carried out on Accrual basis.
 //! * Accounting periods close every block, although entities are free to choose a specific block for longer periods (month/year close is a nominated block number, periods are defined by  block number ranges)
 //! * In order to facilitate expense recognistion for example the period in which the transaction is recorded, may not necessrily be the period in which the
 //! transaction is recognised) adjustments must specify the period(block number or block range) to which they relate. By default the transaction block number and the period block number are identical on first posting.
 //!
-//! Curency Types
+//! # Curency Types
+//!
 //! The UI provides spot rate for live results for Period close reporting (also known as Reporting Currency or Presentation Currency), which is supported byt the exchange rates module.
 //! General rules for Currency conversion at Period Close follow GAAP rules and are carried out as follows:
 //! * Revenue recognition in the period when they occur, and expenses recognised (including asset consumption) in the same period as the revenue to which they relate
@@ -82,17 +85,15 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Accounting abstractions.
-mod traits;
-pub use traits::Posting;
-
-use frame_support::{codec::Codec, dispatch::EncodeLike, pallet_prelude::*};
+use frame_support::{codec::Codec, dispatch::EncodeLike, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
 use sp_arithmetic::traits::BaseArithmetic;
-use sp_primitives::crypto::UncheckedFrom;
 use sp_runtime::traits::{Convert, Hash, Member};
 use sp_std::prelude::*;
+
+use totem_utils::traits::accounting::Posting;
+use totem_utils::{ok, StorageMapExt};
 
 /// Balance on an account can be negative
 pub type LedgerBalance = i128;
@@ -100,14 +101,14 @@ pub type LedgerBalance = i128;
 /// General ledger account number
 pub type Account = u64;
 
-/// 0=Debit(false) 1=Credit(true) Note: Debit and Credit balances are account specific - see chart of accounts
-pub type Indicator = bool;
+/// Note: Debit and Credit balances are account specific - see chart of accounts.
+#[repr(u8)]
 #[derive(Decode, Encode)]
-pub enum _Indicator {
+pub enum Indicator {
     Debit = 0,
     Credit = 1,
 }
-impl EncodeLike<_Indicator> for bool {}
+impl EncodeLike<Indicator> for bool {}
 
 /// The index number for identifying the posting to ledgers
 pub type PostingIndex = u128;
@@ -129,8 +130,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn id_account_posting_id_list)]
     /// Associate the posting index with the identity.
-    pub type IdAccountPostingIdList<T: Config> =
-        StorageMap<_, /*TODO correct Hasher*/ Blake2_128Concat, (T::AccountId, Account), Vec<u128>>;
+    pub type IdAccountPostingIdList<T: Config> = StorageMap<_, Blake2_128Concat, (T::AccountId, Account), Vec<u128>>;
 
     #[pallet::storage]
     #[pallet::getter(fn accounts_by_id)]
@@ -149,7 +149,7 @@ pub mod pallet {
         _,
         Blake2_128Concat,
         (T::AccountId, Account, u128),
-        Option<(T::BlockNumber, LedgerBalance, Indicator, T::Hash, T::BlockNumber)>,
+        (T::BlockNumber, LedgerBalance, Indicator, T::Hash, T::BlockNumber),
     >;
 
     #[pallet::storage]
@@ -168,7 +168,7 @@ pub mod pallet {
     // Depreciation (calculated everytime there is a transaction so as not to overwork the runtime) - sets "last seen block" to calculate the delta for depreciation
 
     #[pallet::config] //TODO declare configs that are constant
-    pub trait Config: frame_system::Config + frame_timestamp::Config {
+    pub trait Config: frame_system::Config + pallet_timestamp::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// The equivalent to Balance trait to avoid cyclical dependency.
@@ -180,8 +180,6 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Error fetching latest posting index.
-        PostingIndexFetching,
         /// Error fetching the balance by ledger.
         BalanceByLedgerFetching,
         /// Error fetching the global ledger.
@@ -232,17 +230,12 @@ impl<T: Config> Pallet<T> {
     /// The Totem Accounting Recipes are constructed using this simple function.
     /// The second Blocknumber is for re-targeting the entry in the accounts, i.e. for adjustments prior to or after the current period (generally accruals).
     fn post_amounts(
-        //TODO: give an explicit name to those variables:
         (o, a, c, d, h, b, t): (T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber),
     ) -> DispatchResultWithPostInfo {
-        let posting_index = if <PostingNumber<T>>::exists() {
+        let posting_index = match Self::posting_number() {
             // Get and increment the posting number
-            Self::posting_number()
-                .ok_or(Error::<T>::PostingIndexFetching)?
-                .checked_add(1)
-                .ok_or(Error::<T>::PostingIndexOverflow)?
-        } else {
-            0
+            Some(index) => index.checked_add(1).ok_or(Error::<T>::PostingIndexOverflow)?,
+            None => 0,
         };
         let ab: LedgerBalance = c.abs();
         let balance_key = (o.clone(), a);
@@ -262,28 +255,25 @@ impl<T: Config> Pallet<T> {
             .checked_add(c)
             .ok_or(Error::<T>::GlobalBalanceValueOverflow)?;
 
-        <PostingNumber<T>>::put(posting_index);
-        if let None = <IdAccountPostingIdList<T>>::mutate(&balance_key, |list| Some(list.as_mut()?.push(posting_index)))
-        {
-            // No item under the key. What should we do in this case? Same for the following lines.
-        }
-        <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.retain(|h| h != &a)));
-        <AccountsById<T>>::mutate(&o, |accounts_by_id| accounts_by_id.as_mut().map(|l| l.push(a)));
-        <BalanceByLedger<T>>::insert(&balance_key, new_balance);
-        <PostingDetail<T>>::insert(&posting_key, Some(detail));
-        <GlobalLedger<T>>::insert(&a, new_global_balance);
+        PostingNumber::<T>::put(posting_index);
+        IdAccountPostingIdList::<T>::mutate_(&balance_key, |list| list.push(posting_index));
+        AccountsById::<T>::mutate_(&o, |accounts_by_id| accounts_by_id.retain(|h| h != &a));
+        AccountsById::<T>::mutate_(&o, |accounts_by_id| accounts_by_id.push(a));
+        BalanceByLedger::<T>::insert(&balance_key, new_balance);
+        PostingDetail::<T>::insert(&posting_key, detail);
+        GlobalLedger::<T>::insert(&a, new_global_balance);
 
         Self::deposit_event(Event::LegderUpdate(o, a, c, posting_index));
 
-        Ok(().into())
+        ok()
     }
 }
 
 pub use pallet::*;
 
-impl<T: Config> Posting<T::AccountId, T::Hash, T::BlockNumber, T::CoinAmount> for Module<T>
+impl<T: Config> Posting<T::AccountId, T::Hash, T::BlockNumber, T::CoinAmount> for Pallet<T>
 where
-    T::AccountId: UncheckedFrom<[u8; 32]>,
+    T::AccountId: From<[u8; 32]>,
 {
     type Account = Account;
     type LedgerBalance = LedgerBalance;
@@ -315,20 +305,21 @@ where
                     // as this has already changed in storage.
                     for b in trk.iter() {
                         if let Err(_e) = Self::post_amounts(b.clone()) {
-                            Err(Error::<T>::SystemFailure)?;
+                            fail!(Error::<T>::SystemFailure);
                         }
                     }
-                    Err(Error::<T>::AmountOverflow)?;
+                    fail!(Error::<T>::AmountOverflow);
                 }
             }
         }
-        Ok(().into())
+        ok()
     }
 
     /// This function simply returns the Totem escrow account address
     fn get_escrow_account() -> T::AccountId {
         let escrow_account: [u8; 32] = *b"TotemsEscrowAddress4LockingFunds";
-        UncheckedFrom::unchecked_from(escrow_account)
+
+        escrow_account.into()
     }
 
     /// This function takes the transaction fee and prepares to account for it in accounting.
@@ -345,8 +336,8 @@ where
         let increase_amount: LedgerBalance = fee_converted.into();
         let decrease_amount: LedgerBalance = to_invert.into();
 
-        let account_1: Account = 250500290000000u64; // debit  increase 250500290000000 Totem Transaction Fees
-        let account_2: Account = 110100040000000u64; // credit decrease 110100040000000 XTX Balance
+        let account_1: Account = 250_50029000_0000_u64; // debit  increase 250500290000000 Totem Transaction Fees
+        let account_2: Account = 110_10004000_0000_u64; // credit decrease 110100040000000 XTX Balance
 
         // This sets the change block and the applicable posting period. For this context they will always be
         // the same.
@@ -357,79 +348,33 @@ where
         let fee_hash: T::Hash = Self::get_pseudo_random_hash(payer.clone(), payer.clone());
 
         // Keys for posting
-        let mut forward_keys = Vec::<(
-            T::AccountId,
-            Account,
-            LedgerBalance,
-            bool,
-            T::Hash,
-            T::BlockNumber,
-            T::BlockNumber,
-        )>::with_capacity(3);
-        forward_keys.push((
-            payer.clone(),
-            account_1,
-            increase_amount,
-            true,
-            fee_hash,
-            current_block,
-            current_block_dupe,
-        ));
-        forward_keys.push((
-            payer.clone(),
-            account_2,
-            decrease_amount,
-            false,
-            fee_hash,
-            current_block,
-            current_block_dupe,
-        ));
+        let forward_keys = vec![
+            (payer.clone(), account_1, increase_amount, true, fee_hash, current_block, current_block_dupe),
+            (payer.clone(), account_2, decrease_amount, false, fee_hash, current_block, current_block_dupe),
+        ];
 
         // Reversal keys in case of errors
-        let mut reversal_keys = Vec::<(
-            T::AccountId,
-            Account,
-            LedgerBalance,
-            bool,
-            T::Hash,
-            T::BlockNumber,
-            T::BlockNumber,
-        )>::with_capacity(2);
-        reversal_keys.push((
-            payer.clone(),
-            account_1,
-            decrease_amount,
-            false,
-            fee_hash,
-            current_block,
-            current_block_dupe,
-        ));
-        reversal_keys.push((
-            payer.clone(),
-            account_2,
-            increase_amount,
-            true,
-            fee_hash,
-            current_block,
-            current_block_dupe,
-        ));
+        let reversal_keys = vec![
+            (payer.clone(), account_1, decrease_amount, false, fee_hash, current_block, current_block_dupe),
+            (payer.clone(), account_2, increase_amount, true, fee_hash, current_block, current_block_dupe),
+        ];
 
         let track_rev_keys =
             Vec::<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>::with_capacity(
                 2,
             );
 
-        Self::handle_multiposting_amounts(forward_keys.clone(), reversal_keys.clone(), track_rev_keys.clone())
+        Self::handle_multiposting_amounts(forward_keys, reversal_keys, track_rev_keys)
     }
 
     fn get_pseudo_random_hash(sender: T::AccountId, recipient: T::AccountId) -> T::Hash {
         let tuple = (sender, recipient);
         let input = (
             tuple,
-            <frame_timestamp::Module<T>>::get(),
+            pallet_timestamp::Module::<T>::get(),
             sp_io::offchain::random_seed(),
-            <frame_system::Module<T>>::extrinsic_index(),
-            <frame_system::Module<T>>::block_number(),
+            frame_system::Module::<T>::extrinsic_index(),
+            frame_system::Module::<T>::block_number(),
         );
 
         T::Hashing::hash(input.encode().as_slice()) // default hash BlakeTwo256
