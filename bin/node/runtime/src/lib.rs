@@ -1076,6 +1076,7 @@ impl pallet_accounting::Config for Runtime {
 	type Event = Event;
 	type CoinAmount = Balance;
 	type AccountingConversions = conversion_handler::ConversionHandler;
+}
 
 construct_runtime!(
 	pub enum Runtime where
