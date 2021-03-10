@@ -1,0 +1,31 @@
+[package]
+authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
+description = 'Projects Pallet'
+edition = '2018'
+homepage = 'https://totemaccounting.com'
+license = 'GNU'
+name = 'pallet-teams'
+version = '1.0.0'
+# repository = 'https://github.com/substrate-developer-hub/substrate-pallet-template/'
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
+totem-utils = { path = "../utils" }
+# primitives
+sp-std = { path = "../../../primitives/std", default-features = false }
+# frame
+frame-support = { path = "../../support", default-features = false }
+frame-system = { path = "../../system", default-features = false }
+
+[dev-dependencies]
+#sr-io = { package = "sp-io", path = "../../primitives/io" }
+#sp-primitives = { package = "sp-core", path = "../../primitives/core" }
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"frame-support/std",
+	"frame-system/std",
+    "sp-std/std",
+]
