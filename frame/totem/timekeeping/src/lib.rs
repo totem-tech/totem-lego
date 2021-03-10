@@ -46,16 +46,17 @@
 //! It should be noted that validators timestamp each new block with the "correct" timestamp, which can be retrieved
 //! when needed to provide time analysis for accounting entries.
 
-mod tests;
-mod traits;
-pub use traits::Validating;
+#![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{dispatch::EncodeLike, fail, pallet_prelude::*};
+mod tests;
+
+use frame_support::{dispatch::EncodeLike, dispatch::Input, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
-use frame_projects::Validating as ProjectValidating;
-
 use sp_std::prelude::*;
+
+use totem_utils::traits::{teams::Validating as ProjectValidating, timekeeping::Validating};
+use totem_utils::{ok, StorageMapExt};
 
 /// Number of pauses of the timer.
 pub type NumberOfBreaks = u16;
@@ -75,26 +76,17 @@ pub type StartOrEndBlockNumber = NumberOfBlocks;
 /// accepted(300), can no longer be rejected or disputed, > 200 < 400
 /// invoiced(400), can no longer be rejected or disputed, > 300 < 500
 /// blocked(999),
-
-#[derive(Clone, Copy, Debug, Decode, Encode, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[repr(u16)]
 pub enum StatusOfTimeRecord {
     Draft = 0,
     Submitted = 1,
-    //TODO
-    //Disputed = 100,
-    //Rejected = 200,
-    //Accepted = 300,
-    //Invoiced = 400,
-    //Blocked = 999,
-    Disputed = 10,
-    Rejected = 20,
-    Accepted = 30,
-    Invoiced = 40,
-    Blocked = 255,
+    Disputed = 100,
+    Rejected = 200,
+    Accepted = 300,
+    Invoiced = 400,
+    Blocked = 999,
 }
-impl EncodeLike<StatusOfTimeRecord> for u16 {}
-//pub type StatusOfTimeRecord(u16);
 
 /// Not calendar period, but fiscal periods 1-15 (0-14).
 pub type PostingPeriod = u16;
@@ -118,18 +110,15 @@ pub type ReasonCodeType = u16;
 pub type BanStatus = bool;
 
 /// Reason why the code changes.
-#[derive(PartialEq, Eq, Clone, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode, Default)]
 pub struct ReasonCodeStruct(ReasonCode, ReasonCodeType);
 
 /// Status of the code changes.
-#[derive(PartialEq, Eq, Clone, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode, Default)]
 pub struct BannedStruct(BanStatus, ReasonCodeStruct);
 
 /// The individual time record.
-#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, Default)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Encode, Decode, Default)]
 pub struct Timekeeper<
     AccountId,
     ReferenceHash,
@@ -152,10 +141,6 @@ pub struct Timekeeper<
     pub start_block: StartOrEndBlockNumber,
     pub end_block: StartOrEndBlockNumber,
     pub nr_of_breaks: NumberOfBreaks,
-}
-
-fn ok() -> DispatchResultWithPostInfo {
-    Ok(().into())
 }
 
 #[frame_support::pallet]
@@ -364,8 +349,8 @@ mod pallet {
 
             if who == worker {
                 // Adds project to list of projects assigned to worker address (in this case worker is project owner)
-                <WorkerProjectsBacklogList<T>>::mutate(&worker, |worker_projects_backlog_list| {
-                    Some(worker_projects_backlog_list.as_mut()?.push(project_hash.clone()))
+                WorkerProjectsBacklogList::<T>::mutate_(&worker, |worker_projects_backlog_list| {
+                    worker_projects_backlog_list.push(project_hash.clone())
                 });
 
                 // The worker is also the project owner,
@@ -379,15 +364,15 @@ mod pallet {
                 // Adds project to list of projects assigned to worker address
                 // Worker does not therefore need to be notified of new project assigned to them, as it will appear in
                 // a list of projects
-                <WorkerProjectsBacklogList<T>>::mutate(&worker, |worker_projects_backlog_list| {
-                    Some(worker_projects_backlog_list.as_mut()?.push(project_hash.clone()))
+                WorkerProjectsBacklogList::<T>::mutate_(&worker, |worker_projects_backlog_list| {
+                    worker_projects_backlog_list.push(project_hash.clone())
                 });
                 // set initial status
-                <WorkerProjectsBacklogStatus<T>>::insert(&status_tuple_key, accepted_status);
+                WorkerProjectsBacklogStatus::<T>::insert(&status_tuple_key, accepted_status);
 
                 // add worker to project team invitations, pending acceptance.
-                <ProjectInvitesList<T>>::mutate(&project_hash, |project_invites_list| {
-                    Some(project_invites_list.as_mut()?.push(worker.clone()))
+                ProjectInvitesList::<T>::mutate_(&project_hash, |project_invites_list| {
+                    project_invites_list.push(worker.clone())
                 });
             }
 
@@ -439,13 +424,13 @@ mod pallet {
                             WorkerProjectsBacklogStatus::<T>::take(&status_tuple_key);
 
                             // Remove project assignment from list
-                            WorkerProjectsBacklogList::<T>::mutate(&who, |worker_projects_backlog_list| {
-                                Some(worker_projects_backlog_list.as_mut()?.retain(|h| h != &project_hash))
+                            WorkerProjectsBacklogList::<T>::mutate_(&who, |worker_projects_backlog_list| {
+                                worker_projects_backlog_list.retain(|h| h != &project_hash)
                             });
 
                             // remove from invitations list
-                            ProjectInvitesList::<T>::mutate(&project_hash, |project_invites_list| {
-                                Some(project_invites_list.as_mut()?.retain(|h| h != &who))
+                            ProjectInvitesList::<T>::mutate_(&project_hash, |project_invites_list| {
+                                project_invites_list.retain(|h| h != &who)
                             });
                         }
                         Some(true) => fail!(Error::<T>::WorkerNotAssigned),
@@ -454,11 +439,6 @@ mod pallet {
                 }
             }
 
-            ok()
-        }
-
-        #[pallet::weight(0)]
-        fn foo(origin: OriginFor<T>, bar: Option<T::Hash>) -> DispatchResultWithPostInfo {
             ok()
         }
 
@@ -483,7 +463,7 @@ mod pallet {
 
             // Check worker is not on the banned list
             let ban_list_key = (project_hash.clone(), who.clone());
-            ensure!(!<ProjectWorkersBanList<T>>::contains_key(&ban_list_key), Error::<T>::WorkerBanned);
+            ensure!(!ProjectWorkersBanList::<T>::contains_key(&ban_list_key), Error::<T>::WorkerBanned);
             // Check worker is part of the team
             let check_team_member = who.clone();
             Self::project_workers_list(project_hash.clone())
@@ -527,13 +507,13 @@ mod pallet {
                 let time_hash: T::Hash = todo!(); //time_data.clone().using_encoded(<T as frame_system::Config>::Hashing::hash);
 
                 // Now update all time relevant records
-                WorkerTimeRecordsHashList::<T>::mutate(&who, |worker_time_records_hash_list| {
-                    Some(worker_time_records_hash_list.as_mut()?.push(time_hash.clone()))
+                WorkerTimeRecordsHashList::<T>::mutate_(&who, |worker_time_records_hash_list| {
+                    worker_time_records_hash_list.push(time_hash.clone())
                 });
 
                 // Add time hash to project list
-                ProjectTimeRecordsHashList::<T>::mutate(&project_hash, |project_time_hash_list| {
-                    Some(project_time_hash_list.as_mut()?.push(time_hash.clone()))
+                ProjectTimeRecordsHashList::<T>::mutate_(&project_hash, |project_time_hash_list| {
+                    project_time_hash_list.push(time_hash.clone())
                 });
 
                 TimeHashOwner::<T>::insert(time_hash.clone(), who.clone());
@@ -849,9 +829,7 @@ impl<T: Config> Pallet<T> {
         let status_tuple_key = (project_hash.clone(), who.clone());
 
         // add worker to project team
-        ProjectWorkersList::<T>::mutate(&project_hash, |project_workers_list| {
-            Some(project_workers_list.as_mut()?.push(who.clone()))
-        });
+        ProjectWorkersList::<T>::mutate_(&project_hash, |project_workers_list| project_workers_list.push(who.clone()));
 
         // Remove from notifications list
         ProjectInvitesList::<T>::mutate(&project_hash, |project_invites_list| {
@@ -965,15 +943,15 @@ impl<T: Config> Pallet<T> {
 
                 // TODO Implement lock on record, then in other sections check the lock status.
                 // Push to archive
-                ProjectTimeRecordsHashListArchive::<T>::mutate(
+                ProjectTimeRecordsHashListArchive::<T>::mutate_(
                     &project_hash,
                     |project_time_records_hash_list_archive| {
-                        Some(project_time_records_hash_list_archive.as_mut()?.push(time_hash.clone()))
+                        project_time_records_hash_list_archive.push(time_hash.clone())
                     },
                 );
                 // Retain all others except
-                ProjectTimeRecordsHashList::<T>::mutate(&project_hash, |project_time_records_hash_list| {
-                    Some(project_time_records_hash_list.as_mut()?.retain(|h| h != &time_hash))
+                ProjectTimeRecordsHashList::<T>::mutate_(&project_hash, |project_time_records_hash_list| {
+                    project_time_records_hash_list.retain(|h| h != &time_hash)
                 });
             }
             false => {
@@ -985,14 +963,14 @@ impl<T: Config> Pallet<T> {
                     .ok_or("This record has either been archived already or does not exist!")?;
                 // TODO Implement unlock on record.
                 // retrieve from archive
-                ProjectTimeRecordsHashList::<T>::mutate(&project_hash, |project_time_records_hash_list| {
-                    Some(project_time_records_hash_list.as_mut()?.push(time_hash.clone()))
+                ProjectTimeRecordsHashList::<T>::mutate_(&project_hash, |project_time_records_hash_list| {
+                    project_time_records_hash_list.push(time_hash.clone())
                 });
                 // remove from archive
-                ProjectTimeRecordsHashListArchive::<T>::mutate(
+                ProjectTimeRecordsHashListArchive::<T>::mutate_(
                     &project_hash,
                     |project_time_records_hash_list_archive| {
-                        Some(project_time_records_hash_list_archive.as_mut()?.retain(|h| h != &time_hash))
+                        project_time_records_hash_list_archive.retain(|h| h != &time_hash)
                     },
                 );
             }
@@ -1013,12 +991,12 @@ impl<T: Config> Pallet<T> {
                     .ok_or("This record has either been archived already or does not exist!")?;
                 // TODO Implement lock on record, then in other sections check the lock status.
                 // Push to archive
-                WorkerTimeRecordsHashListArchive::<T>::mutate(&owner, |worker_time_records_hash_list_archive| {
-                    Some(worker_time_records_hash_list_archive.as_mut()?.push(time_hash.clone()))
+                WorkerTimeRecordsHashListArchive::<T>::mutate_(&owner, |worker_time_records_hash_list_archive| {
+                    worker_time_records_hash_list_archive.push(time_hash.clone())
                 });
                 // Retain all others except
-                WorkerTimeRecordsHashList::<T>::mutate(&owner, |worker_time_records_hash_list| {
-                    Some(worker_time_records_hash_list.as_mut()?.retain(|h| h != &time_hash))
+                WorkerTimeRecordsHashList::<T>::mutate_(&owner, |worker_time_records_hash_list| {
+                    worker_time_records_hash_list.retain(|h| h != &time_hash)
                 });
             }
             false => {
@@ -1032,12 +1010,12 @@ impl<T: Config> Pallet<T> {
                 // TODO Implement unlock on record.
 
                 // Retrieve from archive
-                WorkerTimeRecordsHashList::<T>::mutate(&owner, |worker_time_records_hash_list| {
-                    Some(worker_time_records_hash_list.as_mut()?.push(time_hash.clone()))
+                WorkerTimeRecordsHashList::<T>::mutate_(&owner, |worker_time_records_hash_list| {
+                    worker_time_records_hash_list.push(time_hash.clone())
                 });
                 // Retain all others except
-                WorkerTimeRecordsHashListArchive::<T>::mutate(&owner, |worker_time_records_hash_list_archive| {
-                    Some(worker_time_records_hash_list_archive.as_mut()?.retain(|h| h != &time_hash))
+                WorkerTimeRecordsHashListArchive::<T>::mutate_(&owner, |worker_time_records_hash_list_archive| {
+                    worker_time_records_hash_list_archive.retain(|h| h != &time_hash)
                 });
             }
         }
@@ -1052,32 +1030,54 @@ impl<T: Config> Validating<T::AccountId, T::Hash> for Pallet<T> {
         Self::time_hash_owner(&h).map(|owner| owner == o).unwrap_or(false)
     }
 
-    //TODO: clean that
-    fn validate_and_archive(o: T::AccountId, h: T::Hash, a: bool) -> bool {
-        let who = o.clone();
-        let mut answer: bool = false;
-        // get the time record
-        // let time_record_key = h.clone();
-        // get existing time record
-        let old_time_record = match Self::time_record(h.clone()) {
-            Some(record) => record,
-            None => return false,
-        };
-        // check the owner of the time record. If so process archive.
-        if who == old_time_record.worker {
-            match Self::set_worker_time_archive(who.clone(), h.clone(), a) {
-                Ok(_) => {
-                    // Attempt match on project owner to archive their own record.
-                    if let true = T::Projects::is_project_owner(who.clone(), old_time_record.project_hash) {
-                        match Self::set_project_time_archive(h, old_time_record.project_hash, a) {
-                            Ok(_) => answer = true,
-                            Err(_) => return answer,
-                        }
-                    }
-                }
-                Err(_) => return answer,
+    fn validate_and_archive(who: T::AccountId, h: T::Hash, a: bool) -> bool {
+        match Self::time_record(h.clone()) {
+            Some(old_time_record) => {
+                // Check the owner of the time record. If so process archive.
+                who == old_time_record.worker
+                && Self::set_worker_time_archive(who.clone(), h.clone(), a).is_ok()
+                // Attempt match on project owner to archive their own record.
+                && T::Projects::is_project_owner(who.clone(), old_time_record.project_hash)
+                && Self::set_project_time_archive(h, old_time_record.project_hash, a).is_ok()
             }
-        };
-        return answer;
+            None => false,
+        }
+    }
+}
+
+use core::convert::TryFrom;
+
+impl TryFrom<u16> for StatusOfTimeRecord {
+    type Error = ();
+
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::Draft),
+            1 => Ok(Self::Submitted),
+            100 => Ok(Self::Disputed),
+            200 => Ok(Self::Rejected),
+            300 => Ok(Self::Accepted),
+            400 => Ok(Self::Invoiced),
+            999 => Ok(Self::Blocked),
+            _ => Err(()),
+        }
+    }
+}
+
+impl EncodeLike<StatusOfTimeRecord> for u16 {}
+
+impl Decode for StatusOfTimeRecord {
+    fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
+        let mut buf = [0; 2];
+
+        input.read(&mut buf)?;
+        Self::try_from(u16::from_le_bytes(buf))
+            .map_err(|_| codec::Error::from("[StatusOfTimeRecord::decode] Value out of range"))
+    }
+}
+
+impl Encode for StatusOfTimeRecord {
+    fn encode(&self) -> Vec<u8> {
+        u16::to_le_bytes(*self as u16).into()
     }
 }
