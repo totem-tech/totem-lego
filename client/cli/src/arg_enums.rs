@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright (C) 2018-2021 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
 
 // This program is free software: you can redistribute it and/or modify
@@ -86,6 +86,23 @@ arg_enum! {
 }
 
 arg_enum! {
+	#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+	pub enum CryptoScheme {
+		Ed25519,
+		Sr25519,
+		Ecdsa,
+	}
+}
+
+arg_enum! {
+	#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+	pub enum OutputType {
+		Json,
+		Text,
+	}
+}
+
+arg_enum! {
 	/// How to execute blocks
 	#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 	pub enum ExecutionStrategy {
@@ -148,20 +165,35 @@ impl Into<sc_service::config::RpcMethods> for RpcMethods {
 	}
 }
 
-arg_enum! {
-	/// Database backend
-	#[allow(missing_docs)]
-	#[derive(Debug, Clone, Copy)]
-	pub enum Database {
-		// Facebooks RocksDB
-		RocksDb,
-		// Subdb. https://github.com/paritytech/subdb/
-		SubDb,
-		// ParityDb. https://github.com/paritytech/parity-db/
-		ParityDb,
+/// Database backend
+#[derive(Debug, Clone, Copy)]
+pub enum Database {
+	/// Facebooks RocksDB
+	RocksDb,
+	/// ParityDb. <https://github.com/paritytech/parity-db/>
+	ParityDb,
+}
+
+impl std::str::FromStr for Database {
+	type Err = String;
+
+	fn from_str(s: &str) -> Result<Self, String> {
+		if s.eq_ignore_ascii_case("rocksdb") {
+			Ok(Self::RocksDb)
+		} else if s.eq_ignore_ascii_case("paritydb-experimental") {
+			Ok(Self::ParityDb)
+		} else {
+			Err(format!("Unknwon variant `{}`, known variants: {:?}", s, Self::variants()))
+		}
 	}
 }
 
+impl Database {
+	/// Returns all the variants of this enum to be shown in the cli.
+	pub fn variants() -> &'static [&'static str] {
+		&["rocksdb", "paritydb-experimental"]
+	}
+}
 
 arg_enum! {
 	/// Whether off-chain workers are enabled.

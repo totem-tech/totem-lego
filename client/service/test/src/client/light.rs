@@ -1,6 +1,6 @@
 // This file is part of Substrate.
 
-// Copyright (C) 2018-2020 Parity Technologies (UK) Ltd.
+// Copyright (C) 2018-2021 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
 
 // This program is free software: you can redistribute it and/or modify
@@ -36,13 +36,13 @@ use parking_lot::Mutex;
 use substrate_test_runtime_client::{
 	runtime::{Hash, Block, Header}, TestClient, ClientBlockImportExt,
 };
-use sp_api::{InitializeBlock, StorageTransactionCache, ProofRecorder, OffchainOverlayedChanges};
-use sp_consensus::{BlockOrigin};
+use sp_api::{InitializeBlock, StorageTransactionCache, ProofRecorder};
+use sp_consensus::BlockOrigin;
 use sc_executor::{NativeExecutor, WasmExecutionMethod, RuntimeVersion, NativeVersion};
-use sp_core::{H256, tasks::executor as tasks_executor, NativeOrEncoded};
+use sp_core::{H256, NativeOrEncoded, testing::TaskExecutor};
 use sc_client_api::{
 	blockchain::Info, backend::NewBlockState, Backend as ClientBackend, ProofProvider,
-	in_mem::{Backend as InMemBackend, Blockchain as InMemoryBlockchain},
+	in_mem::{Backend as InMemBackend, Blockchain as InMemoryBlockchain}, ProvideChtRoots,
 	AuxStore, Storage, CallExecutor, cht, ExecutionStrategy, StorageProof, BlockImportOperation,
 	RemoteCallRequest, StorageProvider, ChangesProof, RemoteBodyRequest, RemoteReadRequest,
 	RemoteChangesRequest, FetchChecker, RemoteReadChildRequest, RemoteHeaderRequest, BlockBackend,
@@ -164,6 +164,16 @@ impl Storage<Block> for DummyStorage {
 		Err(ClientError::Backend("Test error".into()))
 	}
 
+	fn cache(&self) -> Option<Arc<dyn BlockchainCache<Block>>> {
+		None
+	}
+
+	fn usage_info(&self) -> Option<sc_client_api::UsageInfo> {
+		None
+	}
+}
+
+impl ProvideChtRoots<Block> for DummyStorage {
 	fn header_cht_root(&self, _cht_size: u64, _block: u64) -> ClientResult<Option<Hash>> {
 		Err(ClientError::Backend("Test error".into()))
 	}
@@ -176,14 +186,6 @@ impl Storage<Block> for DummyStorage {
 				format!("Test error: CHT for block #{} not found", block)
 			).into())
 			.map(Some)
-	}
-
-	fn cache(&self) -> Option<Arc<dyn BlockchainCache<Block>>> {
-		None
-	}
-
-	fn usage_info(&self) -> Option<sc_client_api::UsageInfo> {
-		None
 	}
 }
 
@@ -213,7 +215,7 @@ impl CallExecutor<Block> for DummyCallExecutor {
 			Result<NativeOrEncoded<R>, Self::Error>
 		) -> Result<NativeOrEncoded<R>, Self::Error>,
 		R: Encode + Decode + PartialEq,
-		NC: FnOnce() -> Result<R, String> + UnwindSafe,
+		NC: FnOnce() -> Result<R, sp_api::ApiError> + UnwindSafe,
 	>(
 		&self,
 		_initialize_block_fn: IB,
@@ -221,7 +223,6 @@ impl CallExecutor<Block> for DummyCallExecutor {
 		_method: &str,
 		_call_data: &[u8],
 		_changes: &RefCell<OverlayedChanges>,
-		_offchain_changes: &RefCell<OffchainOverlayedChanges>,
 		_storage_transaction_cache: Option<&RefCell<
 			StorageTransactionCache<
 				Block,
@@ -317,7 +318,7 @@ fn execution_proof_is_generated_and_checked() {
 		// check remote execution proof locally
 		let local_result = check_execution_proof::<_, _, BlakeTwo256>(
 			&local_executor(),
-			tasks_executor(),
+			Box::new(TaskExecutor::new()),
 			&RemoteCallRequest {
 				block: substrate_test_runtime_client::runtime::Hash::default(),
 				header: remote_header,
@@ -345,7 +346,7 @@ fn execution_proof_is_generated_and_checked() {
 		// check remote execution proof locally
 		let execution_result = check_execution_proof_with_make_header::<_, _, BlakeTwo256, _>(
 			&local_executor(),
-			tasks_executor(),
+			Box::new(TaskExecutor::new()),
 			&RemoteCallRequest {
 				block: substrate_test_runtime_client::runtime::Hash::default(),
 				header: remote_header,
@@ -479,7 +480,7 @@ fn prepare_for_read_proof_check() -> (TestChecker, Header, StorageProof, u32) {
 	let local_checker = LightDataChecker::new(
 		Arc::new(DummyBlockchain::new(DummyStorage::new())),
 		local_executor(),
-		tasks_executor(),
+		Box::new(TaskExecutor::new()),
 	);
 	(local_checker, remote_block_header, remote_read_proof, heap_pages)
 }
@@ -527,7 +528,7 @@ fn prepare_for_read_child_proof_check() -> (TestChecker, Header, StorageProof, V
 	let local_checker = LightDataChecker::new(
 		Arc::new(DummyBlockchain::new(DummyStorage::new())),
 		local_executor(),
-		tasks_executor(),
+		Box::new(TaskExecutor::new()),
 	);
 	(local_checker, remote_block_header, remote_read_proof, child_value)
 }
@@ -558,7 +559,7 @@ fn prepare_for_header_proof_check(insert_cht: bool) -> (TestChecker, Hash, Heade
 	let local_checker = LightDataChecker::new(
 		Arc::new(DummyBlockchain::new(DummyStorage::new())),
 		local_executor(),
-		tasks_executor(),
+		Box::new(TaskExecutor::new()),
 	);
 	(local_checker, local_cht_root, remote_block_header, remote_header_proof)
 }
@@ -642,7 +643,7 @@ fn changes_proof_is_generated_and_checked_when_headers_are_not_pruned() {
 	let local_checker = TestChecker::new(
 		Arc::new(DummyBlockchain::new(DummyStorage::new())),
 		local_executor(),
-		tasks_executor(),
+		Box::new(TaskExecutor::new()),
 	);
 	let local_checker = &local_checker as &dyn FetchChecker<Block>;
 	let max = remote_client.chain_info().best_number;
@@ -683,10 +684,13 @@ fn changes_proof_is_generated_and_checked_when_headers_are_not_pruned() {
 		}).unwrap();
 
 		// ..and ensure that result is the same as on remote node
-		match local_result == expected_result {
-			true => (),
-			false => panic!(format!("Failed test {}: local = {:?}, expected = {:?}",
-			                        index, local_result, expected_result)),
+		if local_result != expected_result {
+			panic!(
+				"Failed test {}: local = {:?}, expected = {:?}",
+				index,
+				local_result,
+				expected_result,
+			);
 		}
 	}
 }
@@ -717,7 +721,7 @@ fn changes_proof_is_generated_and_checked_when_headers_are_pruned() {
 	let local_checker = TestChecker::new(
 		Arc::new(DummyBlockchain::new(local_storage)),
 		local_executor(),
-		tasks_executor(),
+		Box::new(TaskExecutor::new()),
 	);
 
 	// check proof on local client
@@ -752,7 +756,7 @@ fn check_changes_proof_fails_if_proof_is_wrong() {
 	let local_checker = TestChecker::new(
 		Arc::new(DummyBlockchain::new(DummyStorage::new())),
 		local_executor(),
-		tasks_executor(),
+		Box::new(TaskExecutor::new()),
 	);
 	let local_checker = &local_checker as &dyn FetchChecker<Block>;
 	let max = remote_client.chain_info().best_number;
@@ -840,10 +844,10 @@ fn check_changes_tries_proof_fails_if_proof_is_wrong() {
 	let local_checker = TestChecker::new(
 		Arc::new(DummyBlockchain::new(DummyStorage::new())),
 		local_executor(),
-		tasks_executor(),
+		Box::new(TaskExecutor::new()),
 	);
 	assert!(local_checker.check_changes_tries_proof(4, &remote_proof.roots,
-	                                                remote_proof.roots_proof.clone()).is_err());
+													remote_proof.roots_proof.clone()).is_err());
 
 	// fails when proof is broken
 	let mut local_storage = DummyStorage::new();
@@ -851,7 +855,7 @@ fn check_changes_tries_proof_fails_if_proof_is_wrong() {
 	let local_checker = TestChecker::new(
 		Arc::new(DummyBlockchain::new(local_storage)),
 		local_executor(),
-		tasks_executor(),
+		Box::new(TaskExecutor::new()),
 	);
 	let result = local_checker.check_changes_tries_proof(
 		4, &remote_proof.roots, StorageProof::empty()
@@ -869,7 +873,7 @@ fn check_body_proof_faulty() {
 	let local_checker = TestChecker::new(
 		Arc::new(DummyBlockchain::new(DummyStorage::new())),
 		local_executor(),
-		tasks_executor(),
+		Box::new(TaskExecutor::new()),
 	);
 
 	let body_request = RemoteBodyRequest {
@@ -893,7 +897,7 @@ fn check_body_proof_of_same_data_should_succeed() {
 	let local_checker = TestChecker::new(
 		Arc::new(DummyBlockchain::new(DummyStorage::new())),
 		local_executor(),
-		tasks_executor(),
+		Box::new(TaskExecutor::new()),
 	);
 
 	let body_request = RemoteBodyRequest {
