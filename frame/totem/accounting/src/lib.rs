@@ -167,15 +167,11 @@ pub mod pallet {
     // Quantities Accounting
     // Depreciation (calculated everytime there is a transaction so as not to overwork the runtime) - sets "last seen block" to calculate the delta for depreciation
 
-    #[pallet::config] //TODO declare configs that are constant
-    pub trait Config: frame_system::Config + pallet_timestamp::Config {
+    #[pallet::config]
+    pub trait Config: frame_system::Config + pallet_timestamp::Config + pallet_balances::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        /// The equivalent to Balance trait to avoid cyclical dependency.
-        /// This is to be used as a replacement for actual network currency.
-        type CoinAmount: Parameter + Member + BaseArithmetic + Codec + Default + Copy + MaybeSerializeDeserialize;
-
-        type AccountingConversions: Convert<Self::CoinAmount, LedgerBalance> + Convert<LedgerBalance, i128>;
+        type AccountingConversions: Convert<Self::Balance, LedgerBalance> + Convert<LedgerBalance, i128>;
     }
 
     #[pallet::error]
@@ -271,7 +267,7 @@ impl<T: Config> Pallet<T> {
 
 pub use pallet::*;
 
-impl<T: Config> Posting<T::AccountId, T::Hash, T::BlockNumber, T::CoinAmount> for Pallet<T>
+impl<T: Config> Posting<T::AccountId, T::Hash, T::BlockNumber, T::Balance> for Pallet<T>
 where
     T::AccountId: From<[u8; 32]>,
 {
@@ -325,11 +321,11 @@ where
     /// This function takes the transaction fee and prepares to account for it in accounting.
     /// This is one of the few functions that will set the ledger accounts to be updated here. Fees
     /// are native to the Substrate Framework, and there may be other use cases.
-    fn account_for_fees(fee: T::CoinAmount, payer: T::AccountId) -> DispatchResultWithPostInfo {
+    fn account_for_fees(fee: T::Balance, payer: T::AccountId) -> DispatchResultWithPostInfo {
         // Take the fee amount and convert for use with accounting. Fee is of type T::Balance which is u128.
         // As amount will always be positive, convert for use in accounting
         let fee_converted: LedgerBalance =
-            <T::AccountingConversions as Convert<T::CoinAmount, LedgerBalance>>::convert(fee);
+            <T::AccountingConversions as Convert<T::Balance, LedgerBalance>>::convert(fee);
         // Convert this for the inversion
         let mut to_invert: LedgerBalance = fee_converted.clone();
         to_invert = to_invert * -1;

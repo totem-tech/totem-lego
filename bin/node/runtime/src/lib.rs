@@ -384,6 +384,7 @@ impl pallet_balances::Config for Runtime {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = frame_system::Module<Runtime>;
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+	type Accounting = pallet_accounting::Module<Self>;
 }
 
 parameter_types! {
@@ -1083,7 +1084,6 @@ mod totem {
 
 	impl pallet_accounting::Config for Runtime {
 		type Event = Event;
-		type CoinAmount = Balance;
 		type AccountingConversions = conversion_handler::ConversionHandler;
 	}
 
@@ -1112,7 +1112,6 @@ mod totem {
 		type Event = Event;
 		type Currency = pallet_balances::Module<Self>;
 		type PrefundingConversions = conversion_handler::ConversionHandler;
-		type Accounting = pallet_accounting::Module<Self>;
 	}
 
 	impl pallet_teams::Config for Runtime {

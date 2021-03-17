@@ -145,6 +145,8 @@
 //!
 //! * Total issued balanced of all accounts should be less than `Config::Balance::max_value()`.
 
+#![feature(custom_inner_attributes)]
+#![rustfmt::skip]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[macro_use]
@@ -154,6 +156,8 @@ mod tests_composite;
 mod tests_reentrancy;
 mod benchmarking;
 pub mod weights;
+
+pub mod totem;
 
 use sp_std::prelude::*;
 use sp_std::{cmp, result, mem, fmt::Debug, ops::BitOr};
@@ -179,6 +183,8 @@ use sp_runtime::{
 use frame_system as system;
 pub use self::imbalances::{PositiveImbalance, NegativeImbalance};
 pub use weights::WeightInfo;
+
+use totem_utils::traits::accounting::Posting;
 
 pub use pallet::*;
 
@@ -213,6 +219,9 @@ pub mod pallet {
 		/// The maximum number of locks that should exist on an account.
 		/// Not strictly enforced, but used for weight estimation.
 		type MaxLocks: Get<u32>;
+
+    	/// Totem Accounting type
+    	type Accounting: Posting<Self::AccountId, Self::Hash, Self::BlockNumber, Self::Balance>;
 	}
 
 	#[pallet::pallet]
@@ -444,6 +453,18 @@ pub mod pallet {
 		ValueQuery
 	>;
 
+	/// Any liquidity locks on some account balances.
+	/// NOTE: Should only be accessed when setting, changing and freeing a lock.
+	#[pallet::storage]
+	#[pallet::getter(fn totem_locks)]
+	pub type TotemLocks<T: Config<I>, I: 'static = ()> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::AccountId,
+		Vec<TotemBalanceLock<T::Balance, T::BlockNumber>>,
+		ValueQuery
+	>;
+
 	/// Storage version of the pallet.
 	///
 	/// This is set to v2.0.0 for new networks.
@@ -558,6 +579,21 @@ pub struct BalanceLock<Balance> {
 	pub amount: Balance,
 	/// If true, then the lock remains in effect even for payment of transaction fees.
 	pub reasons: Reasons,
+}
+
+/// The Totem version of single lock on a balance.
+/// There can be many of these on an account and they "overlap",
+/// so the same balance is frozen by multiple locks.
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct TotemBalanceLock<Balance, BlockNumber> {
+	/// An identifier for this lock. Only one lock may be in existence for each identifier.
+	pub id: LockIdentifier,
+	/// The amount which the free balance may not drop below when this lock is in effect.
+	pub amount: Balance,
+	/// If true, then the lock remains in effect even for payment of transaction fees.
+	pub reasons: Reasons,
+	/// The lock deadline.
+    pub until: BlockNumber,
 }
 
 /// All balance information for an account.

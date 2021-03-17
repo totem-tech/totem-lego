@@ -17,6 +17,7 @@ sp-std = { path = "../../../primitives/std", default-features = false }
 # frame
 frame-support = { path = "../../support", default-features = false }
 frame-system = { path = "../../system", default-features = false }
+pallet-balances = { path = "../../balances", default-features = false }
 # totem frame
 pallet-accounting = { package = "pallet-accounting", path = "../accounting", default-features = false }
 
