@@ -39,6 +39,7 @@
 
 pub mod record_type;
 pub mod traits;
+pub mod types;
 
 use codec::{Decode, Encode, EncodeLike, FullCodec, FullEncode, WrapperTypeEncode};
 use frame_support::{dispatch::DispatchResultWithPostInfo, storage::StorageMap};

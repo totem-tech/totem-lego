@@ -53,7 +53,7 @@ use frame_support::{
     dispatch::EncodeLike,
     fail,
     pallet_prelude::*,
-    traits::{Currency, LockIdentifier, WithdrawReasons},
+    traits::{Currency, LockIdentifier, WithdrawReasons, ExistenceRequirement},
 };
 use frame_system::pallet_prelude::*;
 use pallet_balances::totem::TotemLockableCurrency;
@@ -63,15 +63,16 @@ use sp_std::{prelude::*, vec};
 
 use totem_utils::traits::{accounting::Posting, prefunding::Encumbrance};
 use totem_utils::{ok, StorageMapExt};
+use totem_utils::types::ComparisonAmounts;
 
-type AccountOf<T: Config> = <T::Accounting as Posting<
+type AccountOf<T> = <<T as Config>::Accounting as Posting<
     <T as frame_system::Config>::AccountId,
     <T as frame_system::Config>::Hash,
     <T as frame_system::Config>::BlockNumber,
     <T as pallet_balances::Config>::Balance,
 >>::Account;
 
-type AccountBalanceOf<T: Config> = <T::Accounting as Posting<
+type AccountBalanceOf<T> = <<T as Config>::Accounting as Posting<
     <T as frame_system::Config>::AccountId,
     <T as frame_system::Config>::Hash,
     <T as frame_system::Config>::BlockNumber,
@@ -91,9 +92,6 @@ impl EncodeLike<LockStatus> for bool {}
 /// Generic Status for whatever the HashReference refers
 //TODO
 pub type Status = u16;
-
-/// Used for comparisons
-pub type ComparisonAmounts = u128;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -440,7 +438,7 @@ impl<T: Config> Pallet<T> {
                         Self::cancel_prefunding_lock(details.0.clone(), h, status)?;
                         // transfer to beneficiary.
                         // TODO when currency conversion is implemnted the payment should be at the current rate for the currency
-                        if let Err(_) = T::Currency::transfer(&details.0, &o, prefunding.0, todo!("https://substrate.dev/rustdocs/v3.0.0/frame_support/traits/enum.ExistenceRequirement.html")) {
+                        if let Err(_) = T::Currency::transfer(&details.0, &o, prefunding.0, ExistenceRequirement::KeepAlive) {
                             fail!("Error during transfer")
                         }
                     }

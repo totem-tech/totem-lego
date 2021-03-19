@@ -1,7 +1,7 @@
 // Custom totem stuff.
 
 use super::*;
-//use frame_support::traits::
+use frame_support::traits::WithdrawReasons;
 use totem_utils::traits::accounting::Posting;
 
 /// A currency whose accounts can have liquidity restrictions.
@@ -203,7 +203,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     fn transfer_to_the_escrow(who: &T::AccountId, amount: T::Balance) -> result::Result<(), DispatchError> {
-        let imba = Self::withdraw(who, amount, todo!("There is no `escrow` reason"), ExistenceRequirement::KeepAlive)?;
+        let imba = Self::withdraw(who, amount, WithdrawReasons::ESCROW, ExistenceRequirement::KeepAlive)?;
 
         let escrow_account: T::AccountId = T::Accounting::get_escrow_account();
 

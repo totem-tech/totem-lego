@@ -92,14 +92,9 @@ use sp_arithmetic::traits::BaseArithmetic;
 use sp_runtime::traits::{Convert, Hash, Member};
 use sp_std::{prelude::*, vec};
 
-use totem_utils::traits::accounting::Posting;
+use totem_utils::traits::{accounting::Posting};
 use totem_utils::{ok, StorageMapExt};
-
-/// Balance on an account can be negative
-pub type LedgerBalance = i128;
-
-/// General ledger account number
-pub type Account = u64;
+use totem_utils::types::{LedgerBalance, Account, PostingIndex};
 
 /// Note: Debit and Credit balances are account specific - see chart of accounts.
 #[repr(u8)]
@@ -109,9 +104,6 @@ pub enum Indicator {
     Credit = 1,
 }
 impl EncodeLike<Indicator> for bool {}
-
-/// The index number for identifying the posting to ledgers
-pub type PostingIndex = u128;
 
 #[frame_support::pallet]
 pub mod pallet {
