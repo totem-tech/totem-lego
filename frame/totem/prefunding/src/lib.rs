@@ -65,14 +65,14 @@ use totem_utils::traits::{accounting::Posting, prefunding::Encumbrance};
 use totem_utils::{ok, StorageMapExt};
 use totem_utils::types::ComparisonAmounts;
 
-type AccountOf<T> = <<T as Config>::Accounting as Posting<
+type AccountOf<T> = <<T as pallet_balances::Config>::Accounting as Posting<
     <T as frame_system::Config>::AccountId,
     <T as frame_system::Config>::Hash,
     <T as frame_system::Config>::BlockNumber,
     <T as pallet_balances::Config>::Balance,
 >>::Account;
 
-type AccountBalanceOf<T> = <<T as Config>::Accounting as Posting<
+type AccountBalanceOf<T> = <<T as pallet_balances::Config>::Accounting as Posting<
     <T as frame_system::Config>::AccountId,
     <T as frame_system::Config>::Hash,
     <T as frame_system::Config>::BlockNumber,
