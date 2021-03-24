@@ -21,6 +21,7 @@ frame-support = { path = "../../support", default-features = false }
 frame-system = { path = "../../system", default-features = false }
 pallet-randomness = { package = "pallet-randomness-collective-flip", path = "../../randomness-collective-flip", default-features = false }
 pallet-timestamp = { path = "../../timestamp", default-features = false }
+pallet-balances = { path = "../../balances", default-features = false }
 
 [dev-dependencies]
 #sr-io = { package = "sp-io", path = "../../primitives/io" }

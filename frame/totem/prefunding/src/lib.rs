@@ -53,28 +53,30 @@ use frame_support::{
     dispatch::EncodeLike,
     fail,
     pallet_prelude::*,
-    traits::{Currency, LockIdentifier, LockableCurrency, WithdrawReasons},
+    traits::{Currency, LockIdentifier, WithdrawReasons, ExistenceRequirement},
 };
 use frame_system::pallet_prelude::*;
+use pallet_balances::totem::TotemLockableCurrency;
 
 use sp_runtime::traits::{Convert, Hash};
 use sp_std::{prelude::*, vec};
 
 use totem_utils::traits::{accounting::Posting, prefunding::Encumbrance};
 use totem_utils::{ok, StorageMapExt};
+use totem_utils::types::ComparisonAmounts;
 
-type AccountOf<T> = <<T as Config>::Accounting as Posting<
+type AccountOf<T> = <<T as pallet_balances::Config>::Accounting as Posting<
     <T as frame_system::Config>::AccountId,
     <T as frame_system::Config>::Hash,
     <T as frame_system::Config>::BlockNumber,
-    <T as pallet_accounting::Config>::CoinAmount,
+    <T as pallet_balances::Config>::Balance,
 >>::Account;
 
-type AccountBalanceOf<T> = <<T as Config>::Accounting as Posting<
+type AccountBalanceOf<T> = <<T as pallet_balances::Config>::Accounting as Posting<
     <T as frame_system::Config>::AccountId,
     <T as frame_system::Config>::Hash,
     <T as frame_system::Config>::BlockNumber,
-    <T as pallet_accounting::Config>::CoinAmount,
+    <T as pallet_balances::Config>::Balance,
 >>::LedgerBalance;
 
 type CurrencyBalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -90,9 +92,6 @@ impl EncodeLike<LockStatus> for bool {}
 /// Generic Status for whatever the HashReference refers
 //TODO
 pub type Status = u16;
-
-/// Used for comparisons
-pub type ComparisonAmounts = u128;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -131,7 +130,7 @@ pub mod pallet {
         frame_system::Config + pallet_balances::Config + pallet_timestamp::Config + pallet_accounting::Config
     {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-        type Currency: Currency<Self::AccountId> + LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+        type Currency: Currency<Self::AccountId> + TotemLockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
         type PrefundingConversions: Convert<AccountBalanceOf<Self>, u128>
             + Convert<AccountBalanceOf<Self>, CurrencyBalanceOf<Self>>
             + Convert<CurrencyBalanceOf<Self>, AccountBalanceOf<Self>>
@@ -144,7 +143,6 @@ pub mod pallet {
             + Convert<u128, i128>
             + Convert<AccountBalanceOf<Self>, i128>
             + Convert<CurrencyBalanceOf<Self>, u128>;
-        type Accounting: Posting<Self::AccountId, Self::Hash, Self::BlockNumber, Self::CoinAmount>;
     }
 
     #[pallet::error]
@@ -316,7 +314,7 @@ impl<T: Config> Pallet<T> {
     fn set_prefunding(
         s: T::AccountId,
         c: AccountBalanceOf<T>,
-        _d: T::BlockNumber,
+        d: T::BlockNumber,
         h: T::Hash,
         _u: T::Hash,
     ) -> DispatchResultWithPostInfo {
@@ -337,7 +335,7 @@ impl<T: Config> Pallet<T> {
         if current_balance >= minimum_amount {
             let converted_amount: CurrencyBalanceOf<T> = T::PrefundingConversions::convert(c.clone());
             // Lock the amount from the sender and set deadline
-            T::Currency::set_lock(Self::get_prefunding_id(h), &s, converted_amount, WithdrawReasons::RESERVE);
+            T::Currency::totem_set_lock(Self::get_prefunding_id(h), &s, converted_amount, d, WithdrawReasons::RESERVE);
         } else {
             fail!(Error::<T>::ErrorInsufficientPreFunds);
         }
@@ -394,7 +392,7 @@ impl<T: Config> Pallet<T> {
         // convert hash to lock identifyer
         let prefunding_id = Self::get_prefunding_id(h);
         // unlock the funds
-        T::Currency::remove_lock(prefunding_id, &o);
+        T::Currency::totem_remove_lock(prefunding_id, &o);
         // perform cleanup removing all reference hashes. No accounting posting have been made, so no cleanup needed there
         Prefunding::<T>::remove(&h);
         PrefundingHashOwner::<T>::remove(&h);
@@ -440,7 +438,7 @@ impl<T: Config> Pallet<T> {
                         Self::cancel_prefunding_lock(details.0.clone(), h, status)?;
                         // transfer to beneficiary.
                         // TODO when currency conversion is implemnted the payment should be at the current rate for the currency
-                        if let Err(_) = T::Currency::transfer(&details.0, &o, prefunding.0, todo!("https://substrate.dev/rustdocs/v3.0.0/frame_support/traits/enum.ExistenceRequirement.html")) {
+                        if let Err(_) = T::Currency::transfer(&details.0, &o, prefunding.0, ExistenceRequirement::KeepAlive) {
                             fail!("Error during transfer")
                         }
                     }

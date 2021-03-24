@@ -78,7 +78,7 @@ type AccountBalanceOf<T> = <<T as Config>::Accounting as Posting<
     <T as frame_system::Config>::AccountId,
     <T as frame_system::Config>::Hash,
     <T as frame_system::Config>::BlockNumber,
-    <T as pallet_accounting::Config>::CoinAmount,
+    <T as pallet_balances::Config>::Balance,
 >>::LedgerBalance;
 
 // 0=Unlocked(false) 1=Locked(true)
@@ -194,7 +194,7 @@ pub mod pallet {
             + Convert<AccountBalanceOf<Self>, u128>
             + Convert<u32, Self::BlockNumber>
             + Convert<Self::BlockNumber, u32>;
-        type Accounting: Posting<Self::AccountId, Self::Hash, Self::BlockNumber, Self::CoinAmount>;
+        type Accounting: Posting<Self::AccountId, Self::Hash, Self::BlockNumber, Self::Balance>;
         type Prefunding: Encumbrance<Self::AccountId, Self::Hash, Self::BlockNumber>;
         type Bonsai: Storing<Self::Hash>;
     }
@@ -416,7 +416,7 @@ pub mod pallet {
                 T::AccountId,
                 T::Hash,
                 T::BlockNumber,
-                T::CoinAmount,
+                T::Balance,
             >>::get_pseudo_random_hash(who.clone(), approver.clone());
             if Orders::<T>::contains_key(&order_hash) {
                 fail!(Error::<T>::ErrorHashExists);
