@@ -55,6 +55,7 @@ frame_support::construct_runtime!(
 		System: frame_system::{Module, Call, Event<T>, Config},
 		Balances: pallet_balances::{Module, Call, Event<T>, Config<T>},
 		MultiPhase: multi_phase::{Module, Call, Event<T>},
+		Accounting: pallet_accounting::{Module, Call, Storage, Event<T>},
 	}
 );
 
@@ -176,6 +177,11 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type Accounting = ();
+}
+impl pallet_accounting::Config for Runtime {
+	type Event = Event;
+	type AccountingConversions = pallet_accounting::mock::Conversions;
 }
 
 parameter_types! {

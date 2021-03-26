@@ -28,6 +28,7 @@ totem-utils = { path = "../totem/utils", default-features = false }
 sp-io = { version = "3.0.0", path = "../../primitives/io" }
 sp-core = { version = "3.0.0", path = "../../primitives/core" }
 pallet-transaction-payment = { version = "3.0.0", path = "../transaction-payment" }
+pallet-accounting = { package = "pallet-accounting", path = "../totem/accounting", default-features = false }
 
 [features]
 default = ["std"]

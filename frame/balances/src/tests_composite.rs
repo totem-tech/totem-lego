@@ -94,6 +94,7 @@ impl Config for Test {
 	type AccountStore = frame_system::Pallet<Test>;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type Accounting = ();
 }
 
 pub struct ExtBuilder {

@@ -31,6 +31,9 @@ sp-runtime = { version = "3.0.0", path = "../../../primitives/runtime" }
 sp-election-providers = { version = "3.0.0", path = "../../../primitives/election-providers" }
 serde = "1.0.101"
 
+[dev-dependencies]
+pallet-accounting = { package = "pallet-accounting", path = "../../totem/accounting", default-features = false }
+
 [features]
 # Note feature std is required so that impl_opaque_keys derive serde.
 default = ["std"]

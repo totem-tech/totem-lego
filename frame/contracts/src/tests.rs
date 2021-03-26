@@ -62,6 +62,7 @@ frame_support::construct_runtime!(
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
 		Randomness: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Contracts: pallet_contracts::{Module, Call, Config<T>, Storage, Event<T>},
+		Accounting: pallet_accounting::{Module, Call, Storage, Event<T>},
 	}
 );
 
@@ -230,6 +231,11 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
+	type Accounting = ();
+}
+impl pallet_accounting::Config for Test {
+	type Event = Event;
+	type AccountingConversions = pallet_accounting::mock::Conversions;
 }
 parameter_types! {
 	pub const MinimumPeriod: u64 = 1;

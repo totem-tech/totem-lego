@@ -653,8 +653,13 @@ mod tests {
 		type AccountStore = System;
 		type MaxLocks = ();
 		type WeightInfo = ();
+		type Accounting = ();
 	}
-
+	impl pallet_accounting::Config for Test {
+		type Event = Event;
+		type AccountingConversions = pallet_accounting::mock::Conversions;
+	}
+	
 	parameter_types! {
 		pub const TransactionByteFee: Balance = 0;
 	}

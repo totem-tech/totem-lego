@@ -1,23 +1,6 @@
-// This file is part of Substrate.
+#![cfg(test)]
 
-// Copyright (C) 2019-2021 Parity Technologies (UK) Ltd.
-// SPDX-License-Identifier: Apache-2.0
-
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// 	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-//! Test environment for Gilt pallet.
-
-use crate as pallet_gilt;
+use crate as pallet_orders;
 
 use frame_support::{
 	parameter_types, ord_parameter_types, traits::{OnInitialize, OnFinalize, GenesisBuild},
@@ -37,8 +20,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Config<T>, Storage, Event<T>},
-		Gilt: pallet_gilt::{Module, Call, Config, Storage, Event<T>},
-		Accounting: pallet_accounting::{Module, Call, Storage, Event<T>},
+		Orders: pallet_gilt::{Module, Call, Config, Storage, Event<T>},
 	}
 );
 
@@ -84,11 +66,6 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
-	type Accounting = ();
-}
-impl pallet_accounting::Config for Test {
-	type Event = Event;
-	type AccountingConversions = pallet_accounting::mock::Conversions;
 }
 
 parameter_types! {
@@ -104,20 +81,12 @@ ord_parameter_types! {
 	pub const One: u64 = 1;
 }
 
-impl pallet_gilt::Config for Test {
+impl pallet_orders::Config for Test {
 	type Event = Event;
-	type Currency = Balances;
-	type AdminOrigin = frame_system::EnsureSignedBy<One, Self::AccountId>;
-	type Deficit = ();
-	type Surplus = ();
-	type QueueCount = QueueCount;
-	type MaxQueueLen = MaxQueueLen;
-	type FifoQueueLen = FifoQueueLen;
-	type Period = Period;
-	type MinFreeze = MinFreeze;
-	type IntakePeriod = IntakePeriod;
-	type MaxIntakeBids = MaxIntakeBids;
-	type WeightInfo = ();
+	type OrderConversions = ();
+	type Accounting = ();
+	type Prefunding = ();
+	type Bonsai = ();
 }
 
 // This function basically just builds a genesis storage key/value store according to
@@ -133,12 +102,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 pub fn run_to_block(n: u64) {
 	while System::block_number() < n {
-		Gilt::on_finalize(System::block_number());
+		Orders::on_finalize(System::block_number());
 		Balances::on_finalize(System::block_number());
 		System::on_finalize(System::block_number());
 		System::set_block_number(System::block_number() + 1);
 		System::on_initialize(System::block_number());
 		Balances::on_initialize(System::block_number());
-		Gilt::on_initialize(System::block_number());
+		Orders::on_initialize(System::block_number());
 	}
 }

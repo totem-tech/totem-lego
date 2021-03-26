@@ -123,6 +123,7 @@ impl Config for Test {
 	>;
 	type MaxLocks = MaxLocks;
 	type WeightInfo = ();
+	type Accounting = ();
 }
 
 pub struct ExtBuilder {

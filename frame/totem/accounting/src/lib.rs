@@ -85,6 +85,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+mod mock;
+
 use frame_support::{codec::Codec, dispatch::EncodeLike, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
@@ -92,9 +94,9 @@ use sp_arithmetic::traits::BaseArithmetic;
 use sp_runtime::traits::{Convert, Hash, Member};
 use sp_std::{prelude::*, vec};
 
-use totem_utils::traits::{accounting::Posting};
+use totem_utils::traits::accounting::Posting;
+use totem_utils::types::{Account, LedgerBalance, PostingIndex};
 use totem_utils::{ok, StorageMapExt};
-use totem_utils::types::{LedgerBalance, Account, PostingIndex};
 
 /// Note: Debit and Credit balances are account specific - see chart of accounts.
 #[repr(u8)]
@@ -160,7 +162,7 @@ pub mod pallet {
     // Depreciation (calculated everytime there is a transaction so as not to overwork the runtime) - sets "last seen block" to calculate the delta for depreciation
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_timestamp::Config + pallet_balances::Config {
+    pub trait Config: frame_system::Config + pallet_balances::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         type AccountingConversions: Convert<Self::Balance, LedgerBalance> + Convert<LedgerBalance, i128>;
@@ -262,6 +264,7 @@ pub use pallet::*;
 impl<T: Config> Posting<T::AccountId, T::Hash, T::BlockNumber, T::Balance> for Pallet<T>
 where
     T::AccountId: From<[u8; 32]>,
+    T: pallet_timestamp::Config,
 {
     type Account = Account;
     type LedgerBalance = LedgerBalance;

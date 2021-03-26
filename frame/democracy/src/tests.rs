@@ -64,6 +64,7 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		Scheduler: pallet_scheduler::{Module, Call, Storage, Config, Event<T>},
 		Democracy: pallet_democracy::{Module, Call, Storage, Config, Event<T>},
+		Accounting: pallet_accounting::{Module, Call, Storage, Event<T>},
 	}
 );
 
@@ -128,6 +129,17 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
+	type Accounting = ();
+}
+impl pallet_accounting::Config for Test {
+	type Event = Event;
+	type AccountingConversions = pallet_accounting::mock::Conversions;
+}
+impl pallet_timestamp::Config for Test {
+	type Moment = Moment;
+	type OnTimestampSet = Babe;
+	type MinimumPeriod = MinimumPeriod;
+	type WeightInfo = pallet_timestamp::weights::SubstrateWeight<Runtime>;
 }
 parameter_types! {
 	pub const LaunchPeriod: u64 = 2;

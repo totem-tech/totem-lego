@@ -43,6 +43,7 @@ pallet-randomness-collective-flip = { version = "3.0.0", path = "../randomness-c
 paste = "1.0"
 pretty_assertions = "0.6.1"
 wat = "1.0"
+pallet-accounting = { package = "pallet-accounting", path = "../totem/accounting", default-features = false }
 
 [features]
 default = ["std"]

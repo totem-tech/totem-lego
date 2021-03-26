@@ -29,6 +29,7 @@ hex-literal = "0.3.1"
 pallet-balances = { version = "3.0.0", path = "../balances" }
 sp-core = { version = "3.0.0", path = "../../primitives/core" }
 substrate-test-utils = { version = "3.0.0", path = "../../test-utils" }
+pallet-accounting = { package = "pallet-accounting", path = "../totem/accounting", default-features = false }
 
 [features]
 default = ["std"]

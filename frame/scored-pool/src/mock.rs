@@ -40,6 +40,7 @@ frame_support::construct_runtime!(
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		ScoredPool: pallet_scored_pool::{Module, Call, Storage, Config<T>, Event<T>},
+		Accounting: pallet_accounting::{Module, Call, Storage, Event<T>},
 	}
 );
 
@@ -89,6 +90,11 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
+	type Accounting = ();
+}
+impl pallet_accounting::Config for Test {
+	type Event = Event;
+	type AccountingConversions = pallet_accounting::mock::Conversions;
 }
 
 thread_local! {
