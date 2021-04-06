@@ -804,6 +804,7 @@ mod tests {
 		type ExistentialDeposit = ExistentialDeposit;
 		type AccountStore = System;
 		type WeightInfo = ();
+		type Accounting = ();
 	}
 	impl Config for Test {
 		type Event = Event;

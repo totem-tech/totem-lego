@@ -701,8 +701,9 @@ mod tests {
 		type AccountStore = System;
 		type MaxLocks = ();
 		type WeightInfo = ();
+		type Accounting = ();
 	}
-
+	
 	impl WeightToFeePolynomial for WeightToFee {
 		type Balance = u64;
 

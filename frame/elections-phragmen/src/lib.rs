@@ -1099,8 +1099,9 @@ mod tests {
 		type AccountStore = frame_system::Module<Test>;
 		type MaxLocks = ();
 		type WeightInfo = ();
+		type Accounting = ();
 	}
-
+	
 	frame_support::parameter_types! {
 		pub static VotingBondBase: u64 = 2;
 		pub static VotingBondFactor: u64 = 0;

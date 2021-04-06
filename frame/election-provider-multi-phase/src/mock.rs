@@ -176,6 +176,7 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type Accounting = ();
 }
 
 parameter_types! {

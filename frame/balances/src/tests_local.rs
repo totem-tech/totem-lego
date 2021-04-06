@@ -30,7 +30,7 @@ use frame_support::traits::StorageMapShim;
 use frame_support::weights::{Weight, DispatchInfo, IdentityFee};
 use crate::{
 	self as pallet_balances,
-	Module, Config, decl_tests,
+	Module, Config//, decl_tests,
 };
 use pallet_transaction_payment::CurrencyAdapter;
 
@@ -103,6 +103,7 @@ impl Config for Test {
 	>;
 	type MaxLocks = MaxLocks;
 	type WeightInfo = ();
+	type Accounting = ();
 }
 
 pub struct ExtBuilder {

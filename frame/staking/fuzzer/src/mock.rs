@@ -76,6 +76,7 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
+	type Accounting = ();
 }
 impl pallet_indices::Config for Test {
 	type AccountIndex = AccountIndex;

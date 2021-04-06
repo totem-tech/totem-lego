@@ -99,6 +99,7 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
+	type Accounting = ();
 }
 
 impl Config for Test {

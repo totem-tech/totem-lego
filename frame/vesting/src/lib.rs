@@ -454,6 +454,7 @@ mod tests {
 		type AccountStore = System;
 		type MaxLocks = MaxLocks;
 		type WeightInfo = ();
+		type Accounting = ();
 	}
 	parameter_types! {
 		pub const MinVestedTransfer: u64 = 256 * 2;

@@ -16,3 +16,4 @@ sp-std = { path = "../../../primitives/std", default-features = false }
 
 [features]
 #default = ["std"]
+mock = []

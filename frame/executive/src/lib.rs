@@ -653,8 +653,9 @@ mod tests {
 		type AccountStore = System;
 		type MaxLocks = ();
 		type WeightInfo = ();
+		type Accounting = ();
 	}
-
+	
 	parameter_types! {
 		pub const TransactionByteFee: Balance = 0;
 	}

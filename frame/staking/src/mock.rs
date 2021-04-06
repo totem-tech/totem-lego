@@ -164,6 +164,7 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
+	type Accounting = ();
 }
 parameter_types! {
 	pub const UncleGenerations: u64 = 0;
