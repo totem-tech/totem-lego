@@ -1,5 +1,4 @@
-use super::WithdrawReasons;
-// use super::super::misc::WithdrawReasons;
+use super::tokens::misc::WithdrawReasons;
 
 impl WithdrawReasons {
 	/// Lock amouts in the escrow.
