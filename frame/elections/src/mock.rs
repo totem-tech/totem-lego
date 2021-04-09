@@ -58,6 +58,7 @@ impl frame_system::Config for Test {
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
@@ -135,9 +136,9 @@ frame_support::construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: system::{Module, Call, Event<T>},
-		Balances: pallet_balances::{Module, Call, Event<T>, Config<T>},
-		Elections: elections::{Module, Call, Event<T>, Config<T>},
+		System: system::{Pallet, Call, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Event<T>, Config<T>},
+		Elections: elections::{Pallet, Call, Event<T>, Config<T>},
 	}
 );
 

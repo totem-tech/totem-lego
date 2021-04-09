@@ -20,8 +20,8 @@
 //! The Treasury module provides a "pot" of funds that can be managed by stakeholders in the system
 //! and a structure for making spending proposals from this pot.
 //!
-//! - [`treasury::Config`](./trait.Config.html)
-//! - [`Call`](./enum.Call.html)
+//! - [`Config`]
+//! - [`Call`]
 //!
 //! ## Overview
 //!
@@ -53,7 +53,7 @@
 //!
 //! ## GenesisConfig
 //!
-//! The Treasury module depends on the [`GenesisConfig`](./struct.GenesisConfig.html).
+//! The Treasury module depends on the [`GenesisConfig`].
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -68,16 +68,16 @@ use serde::{Serialize, Deserialize};
 use sp_std::prelude::*;
 use frame_support::{decl_module, decl_storage, decl_event, ensure, print, decl_error};
 use frame_support::traits::{
-	Currency, Get, Imbalance, OnUnbalanced, ExistenceRequirement::{KeepAlive},
+	Currency, Get, Imbalance, OnUnbalanced, ExistenceRequirement::KeepAlive,
 	ReservableCurrency, WithdrawReasons
 };
 use sp_runtime::{Permill, ModuleId, RuntimeDebug, traits::{
 	Zero, StaticLookup, AccountIdConversion, Saturating
 }};
 use frame_support::weights::{Weight, DispatchClass};
-use frame_support::traits::{EnsureOrigin};
+use frame_support::traits::EnsureOrigin;
 use codec::{Encode, Decode};
-use frame_system::{ensure_signed};
+use frame_system::ensure_signed;
 pub use weights::WeightInfo;
 
 pub type BalanceOf<T, I=DefaultInstance> =
@@ -187,10 +187,7 @@ decl_storage! {
 			let account_id = <Module<T, I>>::account_id();
 			let min = T::Currency::minimum_balance();
 			if T::Currency::free_balance(&account_id) < min {
-				let _ = T::Currency::make_free_balance_be(
-					&account_id,
-					min,
-				);
+				let _ = T::Currency::make_free_balance_be(&account_id, min);
 			}
 		});
 	}
@@ -377,7 +374,8 @@ impl<T: Config<I>, I: Instance> Module<T, I> {
 						<Proposals<T, I>>::remove(index);
 
 						// return their deposit.
-						let _ = T::Currency::unreserve(&p.proposer, p.bond);
+						let err_amount = T::Currency::unreserve(&p.proposer, p.bond);
+						debug_assert!(err_amount.is_zero());
 
 						// provide the allocation.
 						imbalance.subsume(T::Currency::deposit_creating(&p.beneficiary, p.value));
