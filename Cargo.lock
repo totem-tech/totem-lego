@@ -8584,6 +8584,7 @@ dependencies = [
  "serde_json",
  "sp-debug-derive",
  "sp-std",
+ "static_assertions",
 ]
 
 [[package]]
@@ -9425,6 +9426,7 @@ dependencies = [
 name = "substrate-frame-cli"
 version = "3.0.0"
 dependencies = [
+ "frame-support",
  "frame-system",
  "sc-cli",
  "sp-core",
