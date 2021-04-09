@@ -17,6 +17,8 @@
 
 //! Miscellaneous types.
 
+mod totem;
+
 use codec::{Encode, Decode, FullCodec};
 use sp_core::RuntimeDebug;
 use sp_arithmetic::traits::{Zero, AtLeast32BitUnsigned};

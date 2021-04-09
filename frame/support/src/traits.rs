@@ -19,8 +19,6 @@
 //!
 //! NOTE: If you're looking for `parameter_types`, it has moved in to the top-level module.
 
-mod totem;
-
 pub mod tokens;
 pub use tokens::fungible;
 pub use tokens::fungibles;
