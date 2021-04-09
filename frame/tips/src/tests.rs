@@ -22,11 +22,15 @@
 use crate as tips;
 use super::*;
 use std::cell::RefCell;
-use frame_support::{assert_noop, assert_ok, parameter_types, weights::Weight, traits::Contains};
+use frame_support::{
+	assert_noop, assert_ok, parameter_types,
+	weights::Weight, traits::Contains,
+	PalletId
+};
 use sp_runtime::Permill;
 use sp_core::H256;
 use sp_runtime::{
-	Perbill, ModuleId,
+	Perbill,
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup, BadOrigin},
 };
@@ -40,10 +44,10 @@ frame_support::construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		Treasury: pallet_treasury::{Module, Call, Storage, Config, Event<T>},
-		TipsModTestInst: tips::{Module, Call, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
+		TipsModTestInst: tips::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -76,6 +80,7 @@ impl frame_system::Config for Test {
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
@@ -120,12 +125,12 @@ parameter_types! {
 	pub const SpendPeriod: u64 = 2;
 	pub const Burn: Permill = Permill::from_percent(50);
 	pub const DataDepositPerByte: u64 = 1;
-	pub const TreasuryModuleId: ModuleId = ModuleId(*b"py/trsry");
+	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub const MaximumReasonLength: u32 = 16384;
 }
 impl pallet_treasury::Config for Test {
-	type ModuleId = TreasuryModuleId;
-	type Currency = pallet_balances::Module<Test>;
+	type PalletId = TreasuryPalletId;
+	type Currency = pallet_balances::Pallet<Test>;
 	type ApproveOrigin = frame_system::EnsureRoot<u128>;
 	type RejectOrigin = frame_system::EnsureRoot<u128>;
 	type Event = Event;

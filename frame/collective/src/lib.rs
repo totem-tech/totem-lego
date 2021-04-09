@@ -55,7 +55,7 @@ use frame_support::{
 		PostDispatchInfo,
 	},
 	ensure,
-	traits::{ChangeMembers, EnsureOrigin, Get, InitializeMembers},
+	traits::{ChangeMembers, EnsureOrigin, Get, InitializeMembers, GetBacking, Backing},
 	weights::{DispatchClass, GetDispatchInfo, Weight, Pays},
 };
 use frame_system::{self as system, ensure_signed, ensure_root};
@@ -163,6 +163,15 @@ pub enum RawOrigin<AccountId, I> {
 	Member(AccountId),
 	/// Dummy to manage the fact we have instancing.
 	_Phantom(sp_std::marker::PhantomData<I>),
+}
+
+impl<AccountId, I> GetBacking for RawOrigin<AccountId, I> {
+	fn get_backing(&self) -> Option<Backing> {
+		match self {
+			RawOrigin::Members(n, d) => Some(Backing { approvals: *n, eligible: *d }),
+			_ => None,
+		}
+	}
 }
 
 /// Origin for the collective module.
@@ -472,7 +481,7 @@ decl_module! {
 				let index = Self::proposal_count();
 				<ProposalCount<I>>::mutate(|i| *i += 1);
 				<ProposalOf<T, I>>::insert(proposal_hash, *proposal);
-				let end = system::Module::<T>::block_number() + T::MotionDuration::get();
+				let end = system::Pallet::<T>::block_number() + T::MotionDuration::get();
 				let votes = Votes { index, threshold, ayes: vec![who.clone()], nays: vec![], end };
 				<Voting<T, I>>::insert(proposal_hash, votes);
 
@@ -647,7 +656,7 @@ decl_module! {
 			}
 
 			// Only allow actual closing of the proposal after the voting period has ended.
-			ensure!(system::Module::<T>::block_number() >= voting.end, Error::<T, I>::TooEarly);
+			ensure!(system::Pallet::<T>::block_number() >= voting.end, Error::<T, I>::TooEarly);
 
 			let prime_vote = Self::prime().map(|who| voting.ayes.iter().any(|a| a == &who));
 
@@ -1004,6 +1013,7 @@ mod tests {
 		type OnKilledAccount = ();
 		type SystemWeightInfo = ();
 		type SS58Prefix = ();
+		type OnSetCode = ();
 	}
 	impl Config<Instance1> for Test {
 		type Origin = Origin;
@@ -1045,10 +1055,10 @@ mod tests {
 			NodeBlock = Block,
 			UncheckedExtrinsic = UncheckedExtrinsic
 		{
-			System: system::{Module, Call, Event<T>},
-			Collective: collective::<Instance1>::{Module, Call, Event<T>, Origin<T>, Config<T>},
-			CollectiveMajority: collective::<Instance2>::{Module, Call, Event<T>, Origin<T>, Config<T>},
-			DefaultCollective: collective::{Module, Call, Event<T>, Origin<T>, Config<T>},
+			System: system::{Pallet, Call, Event<T>},
+			Collective: collective::<Instance1>::{Pallet, Call, Event<T>, Origin<T>, Config<T>},
+			CollectiveMajority: collective::<Instance2>::{Pallet, Call, Event<T>, Origin<T>, Config<T>},
+			DefaultCollective: collective::{Pallet, Call, Event<T>, Origin<T>, Config<T>},
 		}
 	);
 

@@ -25,7 +25,7 @@ use frame_system::RawOrigin;
 use frame_benchmarking::{benchmarks_instance_pallet, account, whitelisted_caller, impl_benchmark_test_suite};
 use sp_runtime::traits::Bounded;
 
-use crate::Module as Balances;
+use crate::Pallet as Balances;
 
 const SEED: u32 = 0;
 // existential deposit multiplier
@@ -44,7 +44,8 @@ benchmarks_instance_pallet! {
 		let balance = existential_deposit.saturating_mul(ED_MULTIPLIER.into());
 		let _ = <Balances<T, I> as Currency<_>>::make_free_balance_be(&caller, balance);
 
-		// Transfer `e - 1` existential deposits + 1 unit, which guarantees to create one account, and reap this user.
+		// Transfer `e - 1` existential deposits + 1 unit, which guarantees to create one account,
+		// and reap this user.
 		let recipient: T::AccountId = account("recipient", 0, SEED);
 		let recipient_lookup: <T::Lookup as StaticLookup>::Source = T::Lookup::unlookup(recipient.clone());
 		let transfer_amount = existential_deposit.saturating_mul((ED_MULTIPLIER - 1).into()) + 1u32.into();
