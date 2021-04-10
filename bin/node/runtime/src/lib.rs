@@ -391,7 +391,7 @@ impl pallet_balances::Config for Runtime {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = frame_system::Pallet<Runtime>;
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
-	type Accounting = pallet_accounting::Module<Self>;
+	type Accounting = pallet_accounting::Pallet<Self>;
 }
 
 parameter_types! {
@@ -806,7 +806,7 @@ impl pallet_contracts::Config for Runtime {
 	type SurchargeReward = SurchargeReward;
 	type MaxDepth = MaxDepth;
 	type MaxValueSize = MaxValueSize;
-	type WeightPrice = pallet_transaction_payment::Module<Self>;
+	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
 	type ChainExtension = ();
 	type DeletionQueueDepth = DeletionQueueDepth;
@@ -1099,28 +1099,28 @@ mod totem {
 
 	impl pallet_archive::Config for Runtime {
 		type Event = Event;
-		type Timekeeping = pallet_timekeeping::Module<Self>;
+		type Timekeeping = pallet_timekeeping::Pallet<Self>;
 	}
 
 	impl pallet_bonsai::Config for Runtime {
 		type Event = Event;
-		type Orders = pallet_orders::Module<Self>;
-		type Projects = pallet_teams::Module<Self>;
-		type Timekeeping = pallet_timekeeping::Module<Self>;
+		type Orders = pallet_orders::Pallet<Self>;
+		type Projects = pallet_teams::Pallet<Self>;
+		type Timekeeping = pallet_timekeeping::Pallet<Self>;
 		type BonsaiConversions = conversion_handler::ConversionHandler;
 	}
 
 	impl pallet_orders::Config for Runtime {
 		type Event = Event;
-		type Accounting = pallet_accounting::Module<Self>;
-		type Prefunding = pallet_prefunding::Module<Self>;
+		type Accounting = pallet_accounting::Pallet<Self>;
+		type Prefunding = pallet_prefunding::Pallet<Self>;
 		type OrderConversions = conversion_handler::ConversionHandler;
-		type Bonsai = pallet_bonsai::Module<Self>;
+		type Bonsai = pallet_bonsai::Pallet<Self>;
 	}
 
 	impl pallet_prefunding::Config for Runtime {
 		type Event = Event;
-		type Currency = pallet_balances::Module<Self>;
+		type Currency = pallet_balances::Pallet<Self>;
 		type PrefundingConversions = conversion_handler::ConversionHandler;
 	}
 

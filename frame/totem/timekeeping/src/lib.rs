@@ -333,7 +333,7 @@ mod pallet {
             let who = ensure_signed(origin)?;
 
             // check project hash exists and is owner by sender
-            // let hash_has_correct_owner = <projects::Module<T>>::check_owner_valid_project(who.clone(), project_hash.clone());
+            // let hash_has_correct_owner = <projects::Pallet<T>>::check_owner_valid_project(who.clone(), project_hash.clone());
             let hash_has_correct_owner = T::Projects::is_owner_and_project_valid(who.clone(), project_hash.clone());
             ensure!(hash_has_correct_owner, Error::<T>::InvalidProjectOrOwner);
 

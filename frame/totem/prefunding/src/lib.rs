@@ -354,10 +354,10 @@ impl<T: Config> Pallet<T> {
         let tuple = (sender, recipient);
         let input = (
             tuple,
-            pallet_timestamp::Module::<T>::get(),
+            pallet_timestamp::Pallet::<T>::get(),
             sp_io::offchain::random_seed(),
-            frame_system::Module::<T>::extrinsic_index(),
-            frame_system::Module::<T>::block_number(),
+            frame_system::Pallet::<T>::extrinsic_index(),
+            frame_system::Pallet::<T>::block_number(),
         );
 
         T::Hashing::hash(input.encode().as_slice()) // default hash BlakeTwo256
@@ -374,7 +374,7 @@ impl<T: Config> Pallet<T> {
     /// Prefunding deadline passed?
     fn prefund_deadline_passed(h: T::Hash) -> bool {
         match Self::prefunding(&h) {
-            Some((_, deadline)) if deadline < frame_system::Module::<T>::block_number() => true,
+            Some((_, deadline)) if deadline < frame_system::Pallet::<T>::block_number() => true,
             _ => false,
         }
     }
@@ -490,9 +490,9 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
         let increase_amount: AccountBalanceOf<T> = amount_converted.clone();
         let decrease_amount: AccountBalanceOf<T> =
             <T::PrefundingConversions as Convert<i128, AccountBalanceOf<T>>>::convert(to_invert);
-        let current_block = <frame_system::Module<T>>::block_number();
+        let current_block = <frame_system::Pallet<T>>::block_number();
         // Prefunding is always recorded in the same block. It cannot be posted to another period
-        let current_block_dupe = <frame_system::Module<T>>::block_number();
+        let current_block_dupe = <frame_system::Pallet<T>>::block_number();
         let prefunding_hash: T::Hash = ref_hash.clone();
         // convert the account balanace to the currency balance (i128 -> u128)
         let currency_amount: CurrencyBalanceOf<T> = <T::PrefundingConversions as Convert<
@@ -594,8 +594,8 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
         let increase_amount: AccountBalanceOf<T> = amount_converted.clone();
         let decrease_amount: AccountBalanceOf<T> =
             <T::PrefundingConversions as Convert<i128, AccountBalanceOf<T>>>::convert(inverted);
-        let current_block = frame_system::Module::<T>::block_number();
-        let current_block_dupe = frame_system::Module::<T>::block_number();
+        let current_block = frame_system::Pallet::<T>::block_number();
+        let current_block_dupe = frame_system::Pallet::<T>::block_number();
 
         // Seller
         let account_1 = T::PrefundingConversions::convert(110_10008000_0000_u64); // Debit  increase 110100080000000	Accounts receivable (Sales Control Account or Trade Debtor's Account)
@@ -689,8 +689,8 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
                 let increase_amount = amount;
                 let decrease_amount =
                     <T::PrefundingConversions as Convert<i128, AccountBalanceOf<T>>>::convert(inverted);
-                let current_block = frame_system::Module::<T>::block_number();
-                let current_block_dupe = frame_system::Module::<T>::block_number();
+                let current_block = frame_system::Pallet::<T>::block_number();
+                let current_block_dupe = frame_system::Pallet::<T>::block_number();
 
                 let account_1 = T::PrefundingConversions::convert(120_20003000_0000_u64); // 120200030000000	Debit  decrease Accounts payable
                 let account_2 = T::PrefundingConversions::convert(110_10005000_0000_u64); // 110100050000000	Credit decrease Totem Runtime Deposit (Escrow)
