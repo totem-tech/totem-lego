@@ -767,7 +767,7 @@ impl<T: Config> Pallet<T> {
         // check that at least one of these has changed:
         // let mut dl: u64;
         // let mut dd: u64;
-        let current_block = frame_system::Module::<T>::block_number();
+        let current_block = frame_system::Pallet::<T>::block_number();
         // apply a new fulfiller but check that it isn't the commander
         if order_hdr.commander == commander {
             fail!(Error::<T>::ErrorFulfiller);
