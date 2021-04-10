@@ -329,7 +329,7 @@ where
 
         // This sets the change block and the applicable posting period. For this context they will always be
         // the same.
-        let current_block = <frame_system::Module<T>>::block_number(); // For audit on change
+        let current_block = <frame_system::Pallet<T>>::block_number(); // For audit on change
         let current_block_dupe = current_block.clone(); // Applicable period for accounting
 
         // Generate dummy Hash reference (it has no real bearing but allows posting to happen)
@@ -359,10 +359,10 @@ where
         let tuple = (sender, recipient);
         let input = (
             tuple,
-            pallet_timestamp::Module::<T>::get(),
+            pallet_timestamp::Pallet::<T>::get(),
             sp_io::offchain::random_seed(),
-            frame_system::Module::<T>::extrinsic_index(),
-            frame_system::Module::<T>::block_number(),
+            frame_system::Pallet::<T>::extrinsic_index(),
+            frame_system::Pallet::<T>::block_number(),
         );
 
         T::Hashing::hash(input.encode().as_slice()) // default hash BlakeTwo256
