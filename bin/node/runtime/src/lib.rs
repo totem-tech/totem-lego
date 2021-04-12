@@ -222,7 +222,7 @@ impl frame_system::Config for Runtime {
 	type OnKilledAccount = ();
 	type SystemWeightInfo = frame_system::weights::SubstrateWeight<Runtime>;
 	type SS58Prefix = SS58Prefix;
-	type OnSetCode = ();
+	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -1134,6 +1134,27 @@ mod totem {
 	}
 }
 
+impl cumulus_pallet_parachain_system::Config for Runtime {
+	type Event = Event;
+	type OnValidationData = ();
+	type SelfParaId = ParachainInfo;
+	type DownwardMessageHandlers = XcmHandler;
+	type XcmpMessageHandlers = XcmHandler;
+}
+
+impl parachain_info::Config for Runtime {}
+
+parameter_types! {
+	pub const PolkadotNetworkId: NetworkId = NetworkId::Polkadot;
+}
+
+pub struct AccountId32Convert;
+impl Convert<AccountId, [u8; 32]> for AccountId32Convert {
+	fn convert(account_id: AccountId) -> [u8; 32] {
+		account_id.into()
+	}
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1187,6 +1208,11 @@ construct_runtime!(
 		Mmr: pallet_mmr::{Pallet, Storage},
 		Lottery: pallet_lottery::{Pallet, Call, Storage, Event<T>},
 		Gilt: pallet_gilt::{Pallet, Call, Storage, Event<T>, Config},
+
+		// Cumulus Pararchain
+		ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event},
+		ParachainInfo: parachain_info::{Pallet, Storage, Config},
+		XcmHandler: cumulus_pallet_xcm_handler::{Pallet, Event<T>, Origin},
 	}
 );
 

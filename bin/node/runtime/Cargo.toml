@@ -96,6 +96,16 @@ pallet-prefunding = { default-features = false, path = "../../../frame/totem/pre
 pallet-teams = { default-features = false, path = "../../../frame/totem/teams" }
 pallet-timekeeping = { default-features = false, path = "../../../frame/totem/timekeeping" }
 
+# Parachain Dependencies
+cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
+parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
+polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", default-features = false }
+xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", default-features = false }
+cumulus-pallet-xcm-handler = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = { version = "4.0.0", path = "../../../utils/wasm-builder" }
 
