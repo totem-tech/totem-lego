@@ -116,6 +116,14 @@ sp-io = { version = "3.0.0", path = "../../../primitives/io" }
 default = ["std"]
 with-tracing = [ "frame-executive/with-tracing" ]
 std = [
+	"cumulus-pallet-parachain-system/std",
+	"cumulus-primitives-core/std",
+	"parachain-info/std",
+	"polkadot-parachain/std",
+	"xcm/std",
+	"xcm-executor/std",
+	"xcm-builder/std",
+	"cumulus-pallet-xcm-handler/std",
 	"sp-authority-discovery/std",
 	"pallet-assets/std",
 	"pallet-authority-discovery/std",
