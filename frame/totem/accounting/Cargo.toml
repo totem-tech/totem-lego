@@ -34,5 +34,6 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
     "pallet-timestamp/std",
+    "sp-io/std",
     "sp-std/std",
 ]
