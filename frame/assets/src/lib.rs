@@ -1206,7 +1206,7 @@ mod tests {
 		type WeightInfo = ();
 		type Accounting = ();
 	}
-
+	
 	parameter_types! {
 		pub const AssetDepositBase: u64 = 1;
 		pub const AssetDepositPerZombie: u64 = 1;

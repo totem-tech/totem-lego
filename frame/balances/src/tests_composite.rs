@@ -30,7 +30,7 @@ use frame_support::weights::{Weight, DispatchInfo, IdentityFee};
 use pallet_transaction_payment::CurrencyAdapter;
 use crate::{
 	self as pallet_balances,
-	Module, Config, decl_tests,
+	Module, Config,// decl_tests,
 };
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;

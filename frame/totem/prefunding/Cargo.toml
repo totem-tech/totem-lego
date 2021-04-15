@@ -21,7 +21,7 @@ frame-system = { path = "../../system", default-features = false }
 pallet-balances = { path = "../../balances", default-features = false }
 pallet-timestamp = { path = "../../timestamp", default-features = false }
 # totem frame
-pallet-accounting = { package = "pallet-accounting", path = "../accounting", default-features = false }
+pallet-accounting = { path = "../accounting", default-features = false }
 
 [dev-dependencies]
 #sr-io = { package = "sp-io", path = "../../primitives/io" }

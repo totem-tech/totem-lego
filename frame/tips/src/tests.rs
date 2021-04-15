@@ -90,10 +90,6 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type Accounting = ();
 }
-impl pallet_accounting::Config for Test {
-	type Event = Event;
-	type AccountingConversions = pallet_accounting::mock::Conversions;
-}
 thread_local! {
 	static TEN_TO_FOURTEEN: RefCell<Vec<u128>> = RefCell::new(vec![10,11,12,13,14]);
 }

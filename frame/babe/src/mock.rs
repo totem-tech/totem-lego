@@ -162,10 +162,6 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type Accounting = ();
 }
-impl pallet_accounting::Config for Test {
-	type Event = Event;
-	type AccountingConversions = pallet_accounting::mock::Conversions;
-}
 
 pallet_staking_reward_curve::build! {
 	const REWARD_CURVE: PiecewiseLinear<'static> = curve!(

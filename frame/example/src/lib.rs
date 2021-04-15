@@ -806,10 +806,6 @@ mod tests {
 		type WeightInfo = ();
 		type Accounting = ();
 	}
-	impl pallet_accounting::Config for Test {
-		type Event = Event;
-		type AccountingConversions = pallet_accounting::mock::Conversions;
-	}
 	impl Config for Test {
 		type Event = Event;
 	}

@@ -73,10 +73,6 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type Accounting = ();
 }
-impl pallet_accounting::Config for Test {
-	type Event = Event;
-	type AccountingConversions = pallet_accounting::mock::Conversions;
-}
 
 parameter_types! {
 	pub const CandidacyBond: u64 = 3;
