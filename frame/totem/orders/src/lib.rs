@@ -64,8 +64,6 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-mod tests;
-
 use frame_support::{dispatch::EncodeLike, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 

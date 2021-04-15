@@ -1,4 +1,4 @@
-//#![cfg(test)]
+#![cfg(any(test, feature = "mock"))]
 
 use super::traits::accounting::Posting;
 use frame_support::dispatch::DispatchResultWithPostInfo;

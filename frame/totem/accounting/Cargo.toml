@@ -26,6 +26,7 @@ pallet-balances = { path = "../../balances", default-features = false }
 [dev-dependencies]
 #sr-io = { package = "sp-io", path = "../../primitives/io" }
 #sp-primitives = { package = "sp-core", path = "../../primitives/core" }
+pallet-accounting = { path = ".", default-features = false, features = ["mock"] }
 
 [features]
 default = ["std"]
@@ -36,3 +37,4 @@ std = [
     "pallet-timestamp/std",
     "sp-std/std",
 ]
+mock = ["totem-utils/mock"]

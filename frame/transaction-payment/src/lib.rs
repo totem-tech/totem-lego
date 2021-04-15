@@ -703,7 +703,7 @@ mod tests {
 		type WeightInfo = ();
 		type Accounting = ();
 	}
-
+	
 	impl WeightToFeePolynomial for WeightToFee {
 		type Balance = u64;
 

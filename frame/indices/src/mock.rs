@@ -19,10 +19,10 @@
 
 #![cfg(test)]
 
-use sp_runtime::testing::Header;
-use sp_core::H256;
-use frame_support::parameter_types;
 use crate::{self as pallet_indices, Config};
+use frame_support::parameter_types;
+use sp_core::H256;
+use sp_runtime::testing::Header;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -36,7 +36,6 @@ frame_support::construct_runtime!(
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		Indices: pallet_indices::{Module, Call, Storage, Config<T>, Event<T>},
-		Accounting: pallet_accounting::{Module, Call, Storage, Event<T>},
 	}
 );
 
@@ -85,10 +84,6 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type Accounting = ();
 }
-impl pallet_accounting::Config for Test {
-	type Event = Event;
-	type AccountingConversions = pallet_accounting::mock::Conversions;
-}
 
 parameter_types! {
 	pub const Deposit: u64 = 1;
@@ -104,8 +99,10 @@ impl Config for Test {
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	pallet_balances::GenesisConfig::<Test>{
+	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)],
-	}.assimilate_storage(&mut t).unwrap();
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
 	t.into()
 }

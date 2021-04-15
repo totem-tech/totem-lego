@@ -456,10 +456,6 @@ mod tests {
 		type WeightInfo = ();
 		type Accounting = ();
 	}
-	impl pallet_accounting::Config for Test {
-		type Event = Event;
-		type AccountingConversions = pallet_accounting::mock::Conversions;
-	}
 	parameter_types! {
 		pub const MinVestedTransfer: u64 = 256 * 2;
 		pub static ExistentialDeposit: u64 = 0;

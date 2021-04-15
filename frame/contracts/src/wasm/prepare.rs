@@ -572,7 +572,7 @@ mod tests {
 					.. Default::default()
 				};
 				let r = do_preparation::<env::Test, crate::tests::Test>(wasm, &schedule);
-				assert_matches!(r, $($expected)*);
+				self::assert_matches!(r, $($expected)*);
 			}
 		};
 	}
@@ -983,7 +983,7 @@ mod tests {
 			let mut schedule = Schedule::default();
 			schedule.enable_println = true;
 			let r = do_preparation::<env::Test, crate::tests::Test>(wasm, &schedule);
-			assert_matches!(r, Ok(_));
+			self::assert_matches!(r, Ok(_));
 		}
 	}
 
