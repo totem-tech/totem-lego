@@ -6,11 +6,11 @@ homepage = 'https://totemaccounting.com'
 license = 'GNU'
 name = 'pallet-prefunding'
 version = '1.0.0'
-# repository = 'https://github.com/substrate-developer-hub/substrate-pallet-template/'
+repository = 'https://gitlab.com/totem-tech/totem-lego'
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-totem-utils = { path = "../utils" }
+totem-common = { path = "../common", default-features = false }
 # primitives
 sp-io = { path = "../../../primitives/io", default-features = false }
 sp-runtime = { path = "../../../primitives/runtime", default-features = false }
@@ -24,15 +24,18 @@ pallet-timestamp = { path = "../../timestamp", default-features = false }
 pallet-accounting = { path = "../accounting", default-features = false }
 
 [dev-dependencies]
-#sr-io = { package = "sp-io", path = "../../primitives/io" }
-#sp-primitives = { package = "sp-core", path = "../../primitives/core" }
 
 [features]
 default = ["std"]
 std = [
-	"codec/std",
+    "codec/std",
+    "totem-common/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
 	"frame-support/std",
 	"frame-system/std",
+    "pallet-balances/std",
     "pallet-timestamp/std",
-    "sp-std/std",
+    "pallet-accounting/std",
 ]

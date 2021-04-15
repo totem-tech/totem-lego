@@ -4445,7 +4445,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -4456,7 +4456,7 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -4595,7 +4595,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -4608,7 +4608,7 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -5140,7 +5140,7 @@ dependencies = [
  "parity-scale-codec",
  "sp-runtime",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -5156,7 +5156,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -5394,7 +5394,7 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -5405,7 +5405,7 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -9978,7 +9978,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "totem-utils"
+name = "totem-common"
 version = "1.0.0"
 dependencies = [
  "frame-support",

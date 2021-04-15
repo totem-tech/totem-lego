@@ -184,7 +184,7 @@ use frame_system as system;
 pub use self::imbalances::{PositiveImbalance, NegativeImbalance};
 pub use weights::WeightInfo;
 
-use totem_utils::traits::accounting::Posting;
+use totem_common::traits::accounting::Posting;
 
 pub use pallet::*;
 

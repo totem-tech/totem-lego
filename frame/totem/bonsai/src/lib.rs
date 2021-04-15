@@ -77,12 +77,12 @@ use sp_primitives::H256;
 use sp_runtime::traits::{Convert, Hash};
 use sp_std::prelude::*;
 
-use totem_utils::record_type::RecordType;
-use totem_utils::traits::{
+use totem_common::record_type::RecordType;
+use totem_common::traits::{
     bonsai::Storing, orders::Validating as OrderValidating, teams::Validating as TeamsValidating,
     timekeeping::Validating as TimeValidating,
 };
-use totem_utils::{ok, StorageMapExt};
+use totem_common::{ok, StorageMapExt};
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -115,7 +115,7 @@ pub mod pallet {
     /// Tracking to ensure that we can perform housekeeping on finalization of block.
     pub type TxList<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, Vec<T::Hash>>;
 
-    #[pallet::config] //TODO declare configs that are constant
+    #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         // type Orders: OrderValidating<Self::AccountId,Self::Hash>;

@@ -40,9 +40,9 @@ use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;
 
-use totem_utils::ok;
-use totem_utils::record_type::RecordType;
-use totem_utils::traits::timekeeping::Validating as TimeValidating;
+use totem_common::ok;
+use totem_common::record_type::RecordType;
+use totem_common::traits::timekeeping::Validating as TimeValidating;
 
 type Archival = bool;
 
@@ -57,7 +57,7 @@ pub mod pallet {
     #[pallet::generate_store(trait Store)]
     pub struct Pallet<T>(_);
 
-    #[pallet::config] //TODO declare configs that are constant
+    #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type Timekeeping: TimeValidating<Self::AccountId, Self::Hash>;

@@ -70,8 +70,8 @@ use frame_system::pallet_prelude::*;
 use sp_runtime::traits::Convert;
 use sp_std::{prelude::*, vec};
 
-use totem_utils::traits::{accounting::Posting, bonsai::Storing, orders::Validating, prefunding::Encumbrance};
-use totem_utils::{ok, StorageMapExt};
+use totem_common::traits::{accounting::Posting, bonsai::Storing, orders::Validating, prefunding::Encumbrance};
+use totem_common::{ok, StorageMapExt};
 
 // Totem Config Types
 type AccountBalanceOf<T> = <<T as Config>::Accounting as Posting<
@@ -183,7 +183,7 @@ pub mod pallet {
     #[pallet::getter(fn order_items)]
     pub type OrderItems<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, Vec<OrderItem<T::Hash>>>;
 
-    #[pallet::config] //TODO declare configs that are constant
+    #[pallet::config]
     pub trait Config: frame_system::Config + pallet_accounting::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
@@ -201,7 +201,7 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Cannot change an order that you are not the approver of
+        /// Cannot change an order that you are not the approver of.
         ErrorNotApprover,
         /// This hash already exists! Try again.
         ErrorHashExists,

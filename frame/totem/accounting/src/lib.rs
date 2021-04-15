@@ -94,9 +94,9 @@ use sp_arithmetic::traits::BaseArithmetic;
 use sp_runtime::traits::{Convert, Hash, Member};
 use sp_std::{prelude::*, vec};
 
-use totem_utils::traits::accounting::Posting;
-use totem_utils::types::{Account, LedgerBalance, PostingIndex};
-use totem_utils::{ok, StorageMapExt};
+use totem_common::traits::accounting::Posting;
+use totem_common::types::{Account, LedgerBalance, PostingIndex};
+use totem_common::{ok, StorageMapExt};
 
 /// Note: Debit and Credit balances are account specific - see chart of accounts.
 #[repr(u8)]
