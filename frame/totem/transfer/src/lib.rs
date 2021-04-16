@@ -40,68 +40,73 @@
 //! mechanism for when the user is offline. It also allows us to manage distribution of funds
 //! from the faucet so that funds are not resent to users when there is a network failure.
 
-use support::{decl_event, decl_module, dispatch::Result};
-//v1
-// use frame_support::{decl_event, decl_error, decl_module, decl_storage, dispatch::DispatchResult, weights::{Weight, DispatchClass}, StorageValue, StorageMap}; // v2
+#![cfg_attr(not(feature = "std"), no_std)]
 
-use system::{self, ensure_signed};
-//v1
-// use frame_system::{self}; //v2
+#[frame_support::pallet]
+pub mod pallet {
 
-use rstd::prelude::*;
-//v1
-// use sp_std::prelude::*; //v2
-use runtime_primitives::traits::Convert;
-use support::traits::Currency;
-//v1
-// use frame_support::Traits{Currency}; // v2
+    use frame_support::{
+        decl_error, decl_event, decl_module, decl_storage,
+        dispatch::DispatchResult,
+        fail,
+        pallet_prelude::*,
+        traits::{Currency, ExistenceRequirement},
+        weights::{DispatchClass, Weight},
+        StorageMap, StorageValue,
+    };
+    use frame_system::pallet_prelude::*;
+    use sp_runtime::traits::Convert;
+    use sp_std::{prelude::*, vec};
+    use totem_common::traits::bonsai::Storing;
 
-// Other trait types
-type CurrencyBalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
+    // Other trait types
+    type CurrencyBalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-use crate::bonsai_traits::Storing;
+    #[pallet::pallet]
+    pub struct Pallet<T>(_);
 
-pub trait Trait: system::Trait + balances::Trait {
-    type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
-    type Currency: Currency<Self::AccountId>;
-    type TransferConversions: Convert<Self::Balance, CurrencyBalanceOf<Self>>;
-    type Bonsai: Storing<Self::Hash>;
-}
+    #[pallet::config]
+    pub trait Config: frame_system::Config + pallet_balances::Config {
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type Currency: Currency<Self::AccountId>;
+        type TransferConversions: Convert<Self::Balance, CurrencyBalanceOf<Self>>;
+        type Bonsai: Storing<Self::Hash>;
+    }
 
-decl_module! {
-    pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-        fn deposit_event<T>() = default;
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
         /// Transfers funds!
+        #[pallet::weight(0/*TODO*/)]
         fn transfer(
-            origin,
+            origin: OriginFor<T>,
             to: T::AccountId,
-            #[compact] payment_amount: T::Balance,
-            tx_uid: T::Hash
-        ) -> Result {
+            #[pallet::compact] payment_amount: T::Balance,
+            tx_uid: T::Hash,
+        ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
-            <<T as Trait>::Bonsai as Storing<T::Hash>>::start_tx(tx_uid.clone())?;
+            T::Bonsai::start_tx(tx_uid.clone())?;
             // Convert incoming amount to currency for transfer
-            let amount: CurrencyBalanceOf<T> = <T::TransferConversions as Convert<T::Balance, CurrencyBalanceOf<T>>>::convert(payment_amount);
+            let amount: CurrencyBalanceOf<T> = T::TransferConversions::convert(payment_amount);
 
-            match T::Currency::transfer(&from, &to, amount) {
-                Ok(_) => (),
-                Err(_) => {
-                    Self::deposit_event(RawEvent::ErrorDuringTransfer(tx_uid));
-                    return Err("Error during transfer");
-                },
+            if let Err(_) = T::Currency::transfer(&from, &to, amount, ExistenceRequirement::KeepAlive) {
+                fail!(Error::<T>::ErrorDuringTransfer);
             }
-            <<T as Trait>::Bonsai as Storing<T::Hash>>::end_tx(tx_uid)?;
-            Ok(())
+
+            T::Bonsai::end_tx(tx_uid)?;
+
+            Ok(().into())
         }
     }
-}
 
-decl_event!(
-    pub enum Event<T>
-    where
-        Hash = <T as system::Trait>::Hash,
-    {
-        /// There was an error calling the transfer function in balances
-        ErrorDuringTransfer(Hash),
+    #[pallet::error]
+    pub enum Error<T> {
+        /// There was an error calling the transfer function in balances.
+        ErrorDuringTransfer,
     }
-);
+
+    #[pallet::event]
+    pub enum Event<T: Config> {}
+}

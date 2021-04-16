@@ -5492,6 +5492,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-transfer"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+ "totem-common",
+]
+
+[[package]]
 name = "pallet-treasury"
 version = "3.0.0"
 dependencies = [

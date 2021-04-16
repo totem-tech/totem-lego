@@ -278,7 +278,7 @@ pub mod pallet {
         /// Only the owner of an order can delete it provided no work has been done on it.
         fn delete_order(origin: OriginFor<T>, tx_keys_medium: TXKeysM<T::Hash>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_keys_medium.tx_uid.clone())?;
+            <T::Bonsai as Storing<T::Hash>>::start_tx(tx_keys_medium.tx_uid.clone())?;
 
             // Only delete order if it has not been accepted by the fulfiller.
             match Self::orders(&tx_keys_medium.record_id) {
@@ -303,7 +303,7 @@ pub mod pallet {
                 // Order does not exist
                 None => fail!(Error::<T>::ErrorHashExists3),
             }
-            <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_keys_medium.tx_uid)?;
+            <T::Bonsai as Storing<T::Hash>>::end_tx(tx_keys_medium.tx_uid)?;
 
             ok()
         }
@@ -325,7 +325,7 @@ pub mod pallet {
             tx_keys_large: TXKeysL<T::Hash>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_keys_large.tx_uid.clone())?;
+            <T::Bonsai as Storing<T::Hash>>::start_tx(tx_keys_large.tx_uid.clone())?;
             // Check that the supplied record_id does not exist
             if Orders::<T>::contains_key(&tx_keys_large.record_id) {
                 fail!(Error::<T>::ErrorHashExists);
@@ -386,7 +386,7 @@ pub mod pallet {
                 };
                 Self::set_order(who, fulfiller, tx_keys_large.record_id, order_header, order_items)?;
             }
-            <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_keys_large.tx_uid)?;
+            <T::Bonsai as Storing<T::Hash>>::end_tx(tx_keys_large.tx_uid)?;
             Self::deposit_event(Event::OrderCreated(tx_keys_large.tx_uid.clone(), tx_keys_large.record_id));
 
             ok()
@@ -410,7 +410,7 @@ pub mod pallet {
             tx_uid: T::Hash,                // Bonsai data Hash
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_uid.clone())?;
+            <T::Bonsai as Storing<T::Hash>>::start_tx(tx_uid.clone())?;
             // Generate Hash for order
             let order_hash: T::Hash = <<T as Config>::Accounting as Posting<
                 T::AccountId,
@@ -436,7 +436,7 @@ pub mod pallet {
                 bonsai_token,
                 tx_uid,
             )?;
-            <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_uid)?;
+            <T::Bonsai as Storing<T::Hash>>::end_tx(tx_uid)?;
 
             Self::deposit_event(Event::OrderCreated(tx_uid, order_hash));
 
@@ -460,7 +460,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             // check owner of this record
-            <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_uid)?;
+            <T::Bonsai as Storing<T::Hash>>::start_tx(tx_uid)?;
             Self::change_simple_prefunded_order(
                 who.clone(),
                 approver.clone(),
@@ -472,7 +472,7 @@ pub mod pallet {
                 record_id,
                 bonsai_token,
             )?;
-            <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_uid)?;
+            <T::Bonsai as Storing<T::Hash>>::end_tx(tx_uid)?;
 
             Self::deposit_event(Event::OrderUpdated(tx_uid));
 
@@ -490,9 +490,9 @@ pub mod pallet {
             tx_uid: T::Hash,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_uid)?;
+            <T::Bonsai as Storing<T::Hash>>::start_tx(tx_uid)?;
             Self::change_approval_state(who, h, s, b)?;
-            <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_uid)?;
+            <T::Bonsai as Storing<T::Hash>>::end_tx(tx_uid)?;
             Self::deposit_event(Event::InvoiceSettled(h));
 
             ok()
@@ -509,7 +509,7 @@ pub mod pallet {
             tx_uid: T::Hash,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_uid.clone())?;
+            <T::Bonsai as Storing<T::Hash>>::start_tx(tx_uid.clone())?;
             // get order details and determine if the sender is the buyer or the seller
             let order_hdr = Self::orders(&h).ok_or(Error::<T>::ErrorGettingOrder)?;
             let commander: T::AccountId = order_hdr.commander.clone();
@@ -531,7 +531,7 @@ pub mod pallet {
                 fail!(Error::<T>::ErrorURNobody)
             }
 
-            <T::Bonsai as Storing<T::Hash>>::store_uuid(tx_uid)?;
+            <T::Bonsai as Storing<T::Hash>>::end_tx(tx_uid)?;
 
             ok()
         }

@@ -199,6 +199,7 @@ members = [
 	"frame/totem/prefunding",
 	"frame/totem/teams",
 	"frame/totem/timekeeping",
+	"frame/totem/transfer",
 	"frame/totem/common",
 ]
 
