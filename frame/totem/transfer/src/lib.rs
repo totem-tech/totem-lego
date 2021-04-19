@@ -42,21 +42,19 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub use pallet::*;
+
 #[frame_support::pallet]
-pub mod pallet {
+mod pallet {
 
     use frame_support::{
-        decl_error, decl_event, decl_module, decl_storage,
-        dispatch::DispatchResult,
         fail,
         pallet_prelude::*,
         traits::{Currency, ExistenceRequirement},
-        weights::{DispatchClass, Weight},
-        StorageMap, StorageValue,
     };
     use frame_system::pallet_prelude::*;
     use sp_runtime::traits::Convert;
-    use sp_std::{prelude::*, vec};
+    use sp_std::prelude::*;
     use totem_common::traits::bonsai::Storing;
 
     // Other trait types

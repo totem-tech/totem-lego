@@ -107,6 +107,7 @@ mod pallet {
         max_issuance: u128,
         unissued: u128,
         issued: u128,
+        _marker: PhantomData<T>,
     }
 
     #[cfg(feature = "std")]
@@ -117,6 +118,7 @@ mod pallet {
                 max_issuance: 161_803_398_875_u128,
                 unissued: 72_811_529_493_u128,
                 issued: 88_991_869_382_u128,
+                _marker: PhantomData,
             }
         }
     }

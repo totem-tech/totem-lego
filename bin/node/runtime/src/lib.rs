@@ -1100,6 +1100,10 @@ mod totem {
 		type BonsaiConversions = conversion_handler::ConversionHandler;
 	}
 
+	impl pallet_funding::Config for Runtime {
+		type Event = Event;
+	}
+
 	impl pallet_orders::Config for Runtime {
 		type Event = Event;
 		type Accounting = pallet_accounting::Module<Self>;
@@ -1122,6 +1126,13 @@ mod totem {
 		type Event = Event;
 		type Projects = Teams;
 	}
+
+	impl pallet_transfer::Config for Runtime {
+		type Event = Event;
+		type Currency = pallet_balances::Module<Self>;
+		type TransferConversions = conversion_handler::ConversionHandler;
+		type Bonsai = pallet_bonsai::Module<Self>;
+	}
 }
 
 construct_runtime!(
@@ -1135,10 +1146,12 @@ construct_runtime!(
 		Accounting: pallet_accounting::{Module, Call, Storage, Event<T>},
 		Archive: pallet_archive::{Module, Call, Storage, Event<T>},
 		Bonsai: pallet_bonsai::{Module, Call, Storage, Event<T>},
+		Funding: pallet_funding::{Module, Call, Storage, Config<T>, Event<T>},
 		Orders: pallet_orders::{Module, Call, Storage, Event<T>},
 		Prefunding: pallet_prefunding::{Module, Call, Storage, Event<T>},
 		Teams: pallet_teams::{Module, Call, Storage, Event<T>},
 		Timekeeping: pallet_timekeeping::{Module, Call, Storage, Event<T>},
+		Transfer: pallet_transfer::{Module, Call, Storage, Event<T>},
 		//
 		Utility: pallet_utility::{Module, Call, Event},
 		Babe: pallet_babe::{Module, Call, Storage, Config, ValidateUnsigned},

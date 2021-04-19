@@ -9,6 +9,7 @@ version = '1.0.0'
 repository = 'https://gitlab.com/totem-tech/totem-lego'
 
 [dependencies]
+serde = { version = "1", optional = true }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 totem-common = { path = "../common", default-features = false }
 # primitives
@@ -23,6 +24,7 @@ pallet-timestamp = { path = "../../timestamp", default-features = false }
 [features]
 default = ["std"]
 std = [
+	"serde",
 	"codec/std",
 	"totem-common/std",
     "sp-std/std",
