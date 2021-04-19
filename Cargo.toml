@@ -195,6 +195,7 @@ members = [
 	"frame/totem/accounting",
 	"frame/totem/archive",
 	"frame/totem/bonsai",
+	"frame/totem/funding",
 	"frame/totem/orders",
 	"frame/totem/prefunding",
 	"frame/totem/teams",

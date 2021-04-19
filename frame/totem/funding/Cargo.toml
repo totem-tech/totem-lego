@@ -1,10 +1,10 @@
 [package]
 authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
-description = 'Accounting Engine Pallet'
+description = 'Fund/Crowdsale of Totem'
 edition = '2018'
 homepage = 'https://totemaccounting.com'
 license = 'GNU'
-name = 'pallet-accounting'
+name = 'pallet-funding'
 version = '1.0.0'
 repository = 'https://gitlab.com/totem-tech/totem-lego'
 

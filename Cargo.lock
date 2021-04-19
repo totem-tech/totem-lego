@@ -4181,6 +4181,7 @@ dependencies = [
  "pallet-democracy",
  "pallet-election-provider-multi-phase",
  "pallet-elections-phragmen",
+ "pallet-funding",
  "pallet-gilt",
  "pallet-grandpa",
  "pallet-identity",
@@ -4210,6 +4211,7 @@ dependencies = [
  "pallet-tips",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-transfer",
  "pallet-treasury",
  "pallet-utility",
  "pallet-vesting",
@@ -4864,6 +4866,18 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "sp-tasks",
+]
+
+[[package]]
+name = "pallet-funding"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "sp-std",
+ "totem-common",
 ]
 
 [[package]]

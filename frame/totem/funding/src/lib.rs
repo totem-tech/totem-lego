@@ -32,3 +32,299 @@
 
 // You should have received a copy of the GNU General Public License
 // along with Totem.  If not, see <http://www.gnu.org/licenses/>.
+
+//! Allows to fund/crowdsale Totem.
+
+#![cfg_attr(not(feature = "std"), no_std)]
+
+pub use pallet::*;
+
+#[frame_support::pallet]
+mod pallet {
+
+    use frame_support::{fail, pallet_prelude::*};
+    use frame_system::pallet_prelude::*;
+    use sp_std::prelude::*;
+
+    #[derive(PartialEq, Eq, Clone, Encode, Decode, Default)]
+    #[cfg_attr(feature = "std", derive(Debug))]
+    pub struct TXKeysT<Hash> {
+        pub tx_uid: Hash,
+    }
+
+    #[pallet::pallet]
+    #[pallet::generate_store(trait Store)]
+    pub struct Pallet<T>(_);
+
+    #[pallet::storage]
+    #[pallet::getter(fn transfer_status)]
+    /// Defines if the transfer mechanism is open yet
+    pub type TransferStatus<T: Config> = StorageValue<_, bool, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn max_issuance)]
+    /// The Maximum Quantity of Coins that can be minted
+    pub type MaxlIssuance<T: Config> = StorageValue<_, u128, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn unissued)]
+    /// Initially 45% of Supply (Reserved Funds).
+    pub type UnIssued<T: Config> = StorageValue<_, u128, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn issued)]
+    /// Initially 55% of Supply Reduces as funds distributed.
+    pub type Issued<T: Config> = StorageValue<_, u128, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn controller)]
+    /// Controller of funds (Live Accounting Association Account)
+    pub type Controller<T: Config> = StorageValue<_, T::AccountId>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn total_distributed)]
+    /// The number of coins distributed. It should equal the sum in AccountIdBalances.
+    pub type TotalDistributed<T: Config> = StorageValue<_, u128, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn account_id_balances)]
+    /// Place to store investors accountids with balances
+    pub type AccountIdBalances<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u128>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn holders_account_ids)]
+    /// List of account Ids who have tokens (updated when token value is 0)
+    pub type HoldersAccountIds<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+
+    #[pallet::config]
+    pub trait Config: frame_system::Config {
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+    }
+
+    #[pallet::genesis_config]
+    pub struct GenesisConfig<T: Config> {
+        transfer_status: bool,
+        max_issuance: u128,
+        unissued: u128,
+        issued: u128,
+    }
+
+    #[cfg(feature = "std")]
+    impl<T: Config> Default for GenesisConfig<T> {
+        fn default() -> Self {
+            GenesisConfig {
+                transfer_status: false,
+                max_issuance: 161_803_398_875_u128,
+                unissued: 72_811_529_493_u128,
+                issued: 88_991_869_382_u128,
+            }
+        }
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+        fn build(&self) {
+            TransferStatus::<T>::put(self.transfer_status);
+            MaxlIssuance::<T>::put(self.max_issuance);
+            UnIssued::<T>::put(self.unissued);
+            Issued::<T>::put(self.issued);
+        }
+    }
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
+        /// Super User sets the controller account.
+        #[pallet::weight(0/*TODO*/)]
+        fn set_controller_account(origin: OriginFor<T>, controller: T::AccountId) -> DispatchResultWithPostInfo {
+            // Only Sudo
+            let _who = ensure_root(origin)?;
+
+            // abandon if this is the same controller
+            if Self::is_controller(&controller) {
+                fail!(Error::<T>::SameController);
+            }
+
+            // insert new controller
+            Controller::<T>::put(controller);
+
+            Ok(().into())
+        }
+
+        /// Super User sets the transfers to open or closed.
+        #[pallet::weight(0/*TODO*/)]
+        fn set_transfer_status(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            let _who = ensure_root(origin)?;
+
+            if Self::transfer_status() {
+                TransferStatus::<T>::put(false)
+            } else if Self::check_setup() {
+                TransferStatus::<T>::put(true)
+            } else {
+                fail!(Error::<T>::ControllerNotSet);
+            }
+
+            Ok(().into())
+        }
+
+        /// Super User can only mint coins if transfers are disabled
+        #[pallet::weight(0/*TODO*/)]
+        fn mint_coins(origin: OriginFor<T>, quantity: u128) -> DispatchResultWithPostInfo {
+            let _who = ensure_root(origin)?;
+
+            if Self::transfer_status() {
+                fail!(Error::<T>::CannotMintCoins);
+            }
+
+            let supply = Self::max_issuance().checked_add(quantity).ok_or(Error::<T>::Overflow)?;
+            let unissued = Self::unissued().checked_add(quantity).ok_or(Error::<T>::Overflow)?;
+
+            // Update unissued account with new balance
+            UnIssued::<T>::put(unissued);
+            // Update Max Supply
+            MaxlIssuance::<T>::put(supply);
+
+            Ok(().into())
+        }
+
+        /// Super User can move from unissued to issued coins if transfers are disabled
+        #[pallet::weight(0/*TODO*/)]
+        fn rebalance_issued_coins(origin: OriginFor<T>, amount: u128) -> DispatchResultWithPostInfo {
+            let _who = ensure_root(origin)?;
+            let unissued = Self::unissued();
+
+            // check that the amount is not greater than the available funds
+            if amount > unissued {
+                fail!(Error::<T>::InsufficientFunds);
+            }
+
+            // Those should never error.
+            let unissued = Self::unissued().checked_sub(amount).ok_or(Error::<T>::Overflow)?;
+            let issued = Self::issued().checked_add(amount).ok_or(Error::<T>::Overflow)?;
+
+            UnIssued::<T>::put(unissued);
+            Issued::<T>::put(issued);
+
+            Ok(().into())
+        }
+
+        /// Only the controller can do the initial distribution
+        #[pallet::weight(0/*TODO*/)]
+        fn distribute(origin: OriginFor<T>, to: T::AccountId, amount: u128) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            let issued = Self::issued();
+
+            // ensure that this is the controller account
+            if Self::is_controller(&who) == false {
+                fail!(Error::<T>::NotController);
+            }
+
+            if amount > issued {
+                fail!(Error::<T>::InsufficientFunds);
+            }
+
+            let issued = Self::issued().checked_sub(amount).ok_or(Error::<T>::Overflow)?;
+            let new_balance;
+            match Self::account_id_balances(&to) {
+                Some(b) => {
+                    new_balance = b.checked_add(amount).ok_or(Error::<T>::Overflow)?;
+                    AccountIdBalances::<T>::take(&to);
+                }
+                None => new_balance = 0,
+            };
+            // Ensure that the amount to send is less the available funds.
+            let total_distributed = Self::total_distributed().checked_add(amount).ok_or(Error::<T>::Overflow)?;
+
+            Issued::<T>::put(issued);
+            AccountIdBalances::<T>::insert(&to, new_balance);
+            TotalDistributed::<T>::put(total_distributed);
+            HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.push(to));
+
+            Ok(().into())
+        }
+
+        /// This function transfers funds between accounts (only when opened)
+        #[pallet::weight(0/*TODO*/)]
+        fn transfer(origin: OriginFor<T>, to: T::AccountId, amount: u128) -> DispatchResultWithPostInfo {
+            let from = ensure_signed(origin)?;
+
+            // are transfers open?
+            if Self::transfer_status() == false {
+                fail!(Error::<T>::TransfersNotOpen);
+            }
+
+            // Get the balance of sender
+            let new_sender_balance = Self::account_id_balances(&from).ok_or(Error::<T>::InsufficientFunds)?;
+            let new_receiver_balance = Self::account_id_balances(&to).unwrap_or(0);
+
+            if new_sender_balance < amount {
+                fail!(Error::<T>::InsufficientFunds);
+            } else if new_sender_balance > amount {
+                // reduce balance on sender
+                let new_sender_balance = new_sender_balance.checked_sub(amount).ok_or(Error::<T>::Overflow)?;
+                // increase balance on receiver
+                let new_receiver_balance = new_receiver_balance.checked_add(amount).ok_or(Error::<T>::Overflow)?;
+
+                AccountIdBalances::<T>::insert(&from, new_sender_balance);
+                AccountIdBalances::<T>::insert(&to, new_receiver_balance);
+                // Following ensures that only one entry exists in the list of addresses with funds.
+                HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.retain(|t| t != &to));
+                HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.push(to));
+            } else {
+                let new_receiver_balance =
+                    Self::account_id_balances(&to).unwrap_or(0).checked_add(amount).ok_or(Error::<T>::Overflow)?;
+
+                // balance of sender will be 0 remove from table
+                AccountIdBalances::<T>::remove(&from);
+                HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.retain(|f| f != &from));
+                // increase balance on receiver
+                AccountIdBalances::<T>::insert(&to, new_receiver_balance);
+                // Following ensures that only one entry exists in the list of addresses with funds.
+                HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.retain(|t| t != &to));
+                HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.push(to));
+            }
+
+            Ok(().into())
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        /// Checks if the account parameter is the controller.
+        fn is_controller(account: &T::AccountId) -> bool {
+            Self::controller().map(|controller| account == &controller).unwrap_or(false)
+        }
+    }
+
+    #[pallet::error]
+    pub enum Error<T> {
+        /// You cannot change a controller to the same controller.
+        SameController,
+        /// You are not the controller.
+        NotController,
+        /// Cannot open transfers when controller not set.
+        ControllerNotSet,
+        /// Cannot mint whilst transfers open.
+        CannotMintCoins,
+        /// Minting Overflowed.
+        Overflow,
+        /// Insufficient funds to rebalance.
+        InsufficientFunds,
+        /// Transfers not open.
+        TransfersNotOpen,
+    }
+
+    #[pallet::event]
+    pub enum Event<T: Config> {
+        SuccessMessage(T::AccountId),
+    }
+
+    impl<T: Config> Pallet<T> {
+        #[allow(dead_code)]
+        // check if all the setup actions have been done
+        fn check_setup() -> bool {
+            Controller::<T>::exists()
+        }
+    }
+}
