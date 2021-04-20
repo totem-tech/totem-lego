@@ -21,12 +21,13 @@ frame-support = { version = "3.0.0", default-features = false, path = "../suppor
 frame-system = { version = "3.0.0", default-features = false, path = "../system" }
 log = { version = "0.4.14", default-features = false }
 
-totem-utils = { path = "../totem/utils", default-features = false }
+totem-common = { path = "../totem/common", default-features = false }
 
 [dev-dependencies]
 sp-io = { version = "3.0.0", path = "../../primitives/io" }
 sp-core = { version = "3.0.0", path = "../../primitives/core" }
 pallet-transaction-payment = { version = "3.0.0", path = "../transaction-payment" }
+pallet-accounting = { package = "pallet-accounting", path = "../totem/accounting", default-features = false }
 
 [features]
 default = ["std"]

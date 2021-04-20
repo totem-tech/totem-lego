@@ -25,6 +25,7 @@ log = { version = "0.4.14", default-features = false }
 
 [dev-dependencies]
 sp-core = { version = "3.0.0", path = "../../primitives/core", default-features = false }
+pallet-accounting = { package = "pallet-accounting", path = "../totem/accounting", default-features = false }
 
 [features]
 default = ["std"]

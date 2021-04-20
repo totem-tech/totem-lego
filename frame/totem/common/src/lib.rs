@@ -37,6 +37,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+mod mock;
 pub mod record_type;
 pub mod traits;
 pub mod types;

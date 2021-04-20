@@ -201,11 +201,13 @@ members = [
 	"frame/totem/accounting",
 	"frame/totem/archive",
 	"frame/totem/bonsai",
+	"frame/totem/funding",
 	"frame/totem/orders",
 	"frame/totem/prefunding",
 	"frame/totem/teams",
 	"frame/totem/timekeeping",
-	"frame/totem/utils",
+	"frame/totem/transfer",
+	"frame/totem/common",
 ]
 
 # The list of dependencies below (which can be both direct and indirect dependencies) are crates

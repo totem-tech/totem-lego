@@ -32,6 +32,8 @@ sp-io ={ version = "3.0.0", path = "../../../primitives/io" }
 pallet-timestamp = { version = "3.0.0", path = "../../timestamp" }
 pallet-balances = { version = "3.0.0", path = "../../balances" }
 frame-election-provider-support = { version = "3.0.0", path = "../../election-provider-support" }
+# sp-election-providers = { version = "3.0.0", path = "../../../primitives/election-providers" }
+pallet-accounting = { package = "pallet-accounting", path = "../../totem/accounting", default-features = false }
 
 [features]
 default = ["std"]

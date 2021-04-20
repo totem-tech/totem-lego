@@ -30,7 +30,7 @@ use frame_support::weights::{Weight, DispatchInfo, IdentityFee};
 use pallet_transaction_payment::CurrencyAdapter;
 use crate::{
 	self as pallet_balances,
-	Pallet, Config, decl_tests,
+	Pallet, Config,// decl_tests,
 };
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -95,6 +95,7 @@ impl Config for Test {
 	type AccountStore = frame_system::Pallet<Test>;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type Accounting = ();
 }
 
 pub struct ExtBuilder {

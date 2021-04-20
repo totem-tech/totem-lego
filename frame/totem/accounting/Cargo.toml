@@ -6,11 +6,11 @@ homepage = 'https://totemaccounting.com'
 license = 'GNU'
 name = 'pallet-accounting'
 version = '1.0.0'
-# repository = 'https://github.com/substrate-developer-hub/substrate-pallet-template/'
+repository = 'https://gitlab.com/totem-tech/totem-lego'
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-totem-utils = { path = "../utils", default-features = false }
+totem-common = { path = "../common", default-features = false }
 # primitives
 sp-arithmetic = { path = "../../../primitives/arithmetic", default-features = false }
 sp-io = { path = "../../../primitives/io", default-features = false }
@@ -24,16 +24,23 @@ pallet-timestamp = { path = "../../timestamp", default-features = false }
 pallet-balances = { path = "../../balances", default-features = false }
 
 [dev-dependencies]
-#sr-io = { package = "sp-io", path = "../../primitives/io" }
-#sp-primitives = { package = "sp-core", path = "../../primitives/core" }
+pallet-accounting = { path = ".", default-features = false, features = ["mock"] }
 
 [features]
 default = ["std"]
 std = [
-	"codec/std",
+    "codec/std",
+    "totem-common/std",
+    "sp-arithmetic/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
 	"frame-support/std",
 	"frame-system/std",
+    "pallet-randomness/std",
     "pallet-timestamp/std",
     "sp-io/std",
     "sp-std/std",
+    "pallet-balances/std",
 ]
+mock = ["totem-common/mock"]

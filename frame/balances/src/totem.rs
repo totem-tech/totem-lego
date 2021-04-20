@@ -2,7 +2,7 @@
 
 use super::*;
 use frame_support::traits::WithdrawReasons;
-use totem_utils::traits::accounting::Posting;
+use totem_common::traits::accounting::Posting;
 
 /// A currency whose accounts can have liquidity restrictions.
 pub trait TotemLockableCurrency<AccountId>: Currency<AccountId> {

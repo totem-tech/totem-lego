@@ -1,0 +1,34 @@
+[package]
+authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
+description = 'Fund/Crowdsale of Totem'
+edition = '2018'
+homepage = 'https://totemaccounting.com'
+license = 'GNU'
+name = 'pallet-funding'
+version = '1.0.0'
+repository = 'https://gitlab.com/totem-tech/totem-lego'
+
+[dependencies]
+serde = { version = "1", optional = true }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
+totem-common = { path = "../common", default-features = false }
+# primitives
+sp-std = { path = "../../../primitives/std", default-features = false }
+# frame
+frame-support = { path = "../../support", default-features = false }
+frame-system = { path = "../../system", default-features = false }
+pallet-timestamp = { path = "../../timestamp", default-features = false }
+
+[dev-dependencies]
+
+[features]
+default = ["std"]
+std = [
+	"serde",
+	"codec/std",
+	"totem-common/std",
+    "sp-std/std",
+	"frame-support/std",
+	"frame-system/std",
+    "pallet-timestamp/std",
+]

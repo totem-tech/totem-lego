@@ -1766,6 +1766,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hex-literal",
+ "pallet-accounting",
  "pallet-balances",
  "pallet-indices",
  "pallet-transaction-payment",
@@ -4289,6 +4290,7 @@ dependencies = [
  "pallet-democracy",
  "pallet-election-provider-multi-phase",
  "pallet-elections-phragmen",
+ "pallet-funding",
  "pallet-gilt",
  "pallet-grandpa",
  "pallet-identity",
@@ -4318,6 +4320,7 @@ dependencies = [
  "pallet-tips",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-transfer",
  "pallet-treasury",
  "pallet-utility",
  "pallet-vesting",
@@ -4538,6 +4541,7 @@ version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "pallet-randomness-collective-flip",
  "pallet-timestamp",
@@ -4546,7 +4550,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -4557,7 +4561,7 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -4567,6 +4571,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -4581,6 +4586,7 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -4651,6 +4657,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "pallet-accounting",
  "pallet-authorship",
  "pallet-balances",
  "pallet-offences",
@@ -4678,13 +4685,14 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "pallet-accounting",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -4697,7 +4705,7 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -4707,6 +4715,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "pallet-treasury",
  "parity-scale-codec",
@@ -4744,6 +4753,7 @@ dependencies = [
  "frame-system",
  "hex-literal",
  "log",
+ "pallet-accounting",
  "pallet-balances",
  "pallet-contracts-primitives",
  "pallet-contracts-proc-macro",
@@ -4825,6 +4835,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hex-literal",
+ "pallet-accounting",
  "pallet-balances",
  "pallet-scheduler",
  "parity-scale-codec",
@@ -4847,6 +4858,7 @@ dependencies = [
  "frame-system",
  "hex-literal",
  "log",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "parking_lot 0.11.1",
@@ -4870,6 +4882,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hex-literal",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -4887,6 +4900,7 @@ dependencies = [
  "frame-system",
  "hex-literal",
  "log",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -4905,6 +4919,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -4945,12 +4960,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-funding"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "serde",
+ "sp-std",
+ "totem-common",
+]
+
+[[package]]
 name = "pallet-gilt"
 version = "3.0.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-arithmetic",
@@ -4970,6 +4999,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "pallet-accounting",
  "pallet-authorship",
  "pallet-balances",
  "pallet-offences",
@@ -4997,6 +5027,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -5031,6 +5062,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -5048,6 +5080,7 @@ dependencies = [
  "frame-support",
  "frame-support-test",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "serde",
@@ -5131,6 +5164,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -5145,6 +5179,7 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -5192,6 +5227,7 @@ dependencies = [
  "frame-election-provider-support",
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-babe",
  "pallet-balances",
  "pallet-grandpa",
@@ -5221,7 +5257,7 @@ dependencies = [
  "parity-scale-codec",
  "sp-runtime",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -5237,7 +5273,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -5247,6 +5283,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "pallet-utility",
  "parity-scale-codec",
@@ -5278,6 +5315,7 @@ dependencies = [
  "enumflags2",
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -5308,6 +5346,7 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -5344,6 +5383,7 @@ dependencies = [
  "frame-election-provider-support",
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "pallet-session",
  "pallet-staking",
@@ -5366,6 +5406,7 @@ dependencies = [
  "frame-support",
  "frame-support-test",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "rand_chacha 0.2.2",
@@ -5385,6 +5426,7 @@ dependencies = [
  "frame-system",
  "hex",
  "log",
+ "pallet-accounting",
  "pallet-authorship",
  "pallet-balances",
  "pallet-session",
@@ -5405,6 +5447,30 @@ dependencies = [
  "sp-tracing",
  "static_assertions",
  "substrate-test-utils",
+]
+
+[[package]]
+name = "pallet-staking-fuzz"
+version = "0.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "honggfuzz",
+ "pallet-accounting",
+ "pallet-balances",
+ "pallet-indices",
+ "pallet-session",
+ "pallet-staking",
+ "pallet-staking-reward-curve",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-election-providers",
+ "sp-io",
+ "sp-npos-elections",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -5447,7 +5513,7 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -5458,7 +5524,7 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "sp-std",
- "totem-utils",
+ "totem-common",
 ]
 
 [[package]]
@@ -5486,6 +5552,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "pallet-treasury",
  "parity-scale-codec",
@@ -5503,6 +5570,7 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "serde",
@@ -5542,6 +5610,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-transfer"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+ "totem-common",
+]
+
+[[package]]
 name = "pallet-treasury"
 version = "3.0.0"
 dependencies = [
@@ -5549,6 +5630,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "serde",
@@ -5566,6 +5648,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -5583,6 +5666,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hex-literal",
+ "pallet-accounting",
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
@@ -10174,7 +10258,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "totem-utils"
+name = "totem-common"
 version = "1.0.0"
 dependencies = [
  "frame-support",

@@ -55,8 +55,8 @@ use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;
 
-use totem_utils::traits::{teams::Validating as ProjectValidating, timekeeping::Validating};
-use totem_utils::{ok, StorageMapExt};
+use totem_common::traits::{teams::Validating as ProjectValidating, timekeeping::Validating};
+use totem_common::{ok, StorageMapExt};
 
 /// Number of pauses of the timer.
 pub type NumberOfBreaks = u16;
@@ -268,7 +268,7 @@ mod pallet {
     /// ARCHIVE Experimental! May go somewhere else in future.
     pub type ProjectTimeRecordsHashListArchive<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, Vec<T::Hash>>;
 
-    #[pallet::config] //TODO declare configs that are constant
+    #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type Projects: ProjectValidating<Self::AccountId, Self::Hash>;

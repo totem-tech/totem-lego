@@ -84,6 +84,7 @@ impl pallet_balances::Config for Test {
 	type AccountStore = System;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type Accounting = ();
 }
 parameter_types! {
 	pub const BasicDeposit: u64 = 10;

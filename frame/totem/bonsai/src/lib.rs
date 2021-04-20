@@ -77,12 +77,12 @@ use sp_primitives::H256;
 use sp_runtime::traits::{Convert, Hash};
 use sp_std::prelude::*;
 
-use totem_utils::record_type::RecordType;
-use totem_utils::traits::{
+use totem_common::record_type::RecordType;
+use totem_common::traits::{
     bonsai::Storing, orders::Validating as OrderValidating, teams::Validating as TeamsValidating,
     timekeeping::Validating as TimeValidating,
 };
-use totem_utils::{ok, StorageMapExt};
+use totem_common::{ok, StorageMapExt};
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -115,7 +115,7 @@ pub mod pallet {
     /// Tracking to ensure that we can perform housekeeping on finalization of block.
     pub type TxList<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, Vec<T::Hash>>;
 
-    #[pallet::config] //TODO declare configs that are constant
+    #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         // type Orders: OrderValidating<Self::AccountId,Self::Hash>;
@@ -129,7 +129,12 @@ pub mod pallet {
     }
 
     #[pallet::error]
-    pub enum Error<T> {}
+    pub enum Error<T> {
+        /// Queued transaction already completed.
+        TransactionCompleted,
+        // Someone is attempting to use this TX_UID after a transaction failed.
+        TransactionIdInUse,
+    }
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
@@ -203,7 +208,10 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
+        //TODO
+        /// You are not the owner of this Record.
         ErrorRecordOwner(T::Hash),
+        /// This is an unknown record type.
         ErrorUnknownType(T::Hash),
     }
 }
@@ -252,28 +260,41 @@ impl<T: Config> Pallet<T> {
         ok()
     }
 
-    fn insert_uuid(u: T::Hash) -> DispatchResultWithPostInfo {
+    fn start_uuid(u: T::Hash) -> DispatchResultWithPostInfo {
         if IsSuccessful::<T>::contains_key(&u) {
-            // Throw an error because the transaction already completed
-            fail!("Queued transaction already completed");
+            // Throw an error because the transaction already completed.
+            fail!(Error::<T>::TransactionCompleted);
         } else if IsStarted::<T>::contains_key(&u) {
-            // What happens on error or second use
-
-            // The transaction is now completed successfully update the state change
-            // remove from started, and place in successful
-            let current_block = <frame_system::Pallet<T>>::block_number();
-            let mut block: u32 = T::BonsaiConversions::convert(current_block);
-            block = block + 172800_u32; // cleanup in 30 Days
-            let deletion_block: T::BlockNumber = <T::BonsaiConversions as Convert<u32, T::BlockNumber>>::convert(block);
-            IsStarted::<T>::remove(&u);
-            IsSuccessful::<T>::insert(u, deletion_block);
+            // Apparently someone is attempting to use this TX_UID after a transaction failed.
+            fail!(Error::<T>::TransactionIdInUse);
         } else {
             // this is a new UUID just starting the transaction
-            let current_block = <frame_system::Pallet<T>>::block_number();
+            let current_block = frame_system::Pallet::<T>::block_number();
             let default_bytes = b"nobody can save fiat currency now";
             let list_key: T::Hash = T::Hashing::hash(default_bytes.encode().as_slice());
             TxList::<T>::mutate_(list_key, |tx_list| tx_list.push(u));
             IsStarted::<T>::insert(u, current_block);
+        }
+
+        ok()
+    }
+
+    fn end_uuid(u: T::Hash) -> DispatchResultWithPostInfo {
+        if IsSuccessful::<T>::contains_key(&u) {
+            // Throw an error because the transaction already completed
+            fail!(Error::<T>::TransactionCompleted);
+        } else if IsStarted::<T>::contains_key(&u) {
+            // The transaction is now completed successfully update the state change
+            // remove from started, and place in successful
+            let current_block = frame_system::Pallet::<T>::block_number();
+            let block: u32 = T::BonsaiConversions::convert(current_block);
+            let block = block + 172800u32; // cleanup in 30 Days
+            let deletion_block: T::BlockNumber = T::BonsaiConversions::convert(block);
+            IsStarted::<T>::remove(&u);
+            IsSuccessful::<T>::insert(u, deletion_block);
+        } else {
+            // This situation should not exist.
+            fail!(Error::<T>::TransactionCompleted);
         }
 
         ok()
@@ -287,7 +308,11 @@ impl<T: Config> Storing<T::Hash> for Pallet<T> {
         Self::insert_record(r, d)
     }
 
-    fn store_uuid(u: T::Hash) -> DispatchResultWithPostInfo {
-        Self::insert_uuid(u)
+    fn start_tx(u: T::Hash) -> DispatchResultWithPostInfo {
+        Self::start_uuid(u)
+    }
+
+    fn end_tx(u: T::Hash) -> DispatchResultWithPostInfo {
+        Self::end_uuid(u)
     }
 }

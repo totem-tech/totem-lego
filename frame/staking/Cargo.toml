@@ -46,6 +46,7 @@ frame-election-provider-support = { version = "3.0.0", features = ["runtime-benc
 rand_chacha = { version = "0.2" }
 parking_lot = "0.11.1"
 hex = "0.4"
+pallet-accounting = { package = "pallet-accounting", path = "../totem/accounting", default-features = false }
 
 [features]
 default = ["std"]

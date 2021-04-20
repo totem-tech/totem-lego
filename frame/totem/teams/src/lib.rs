@@ -68,8 +68,8 @@ use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;
 
-use totem_utils::traits::teams::Validating;
-use totem_utils::{ok, StorageMapExt};
+use totem_common::traits::teams::Validating;
+use totem_common::{ok, StorageMapExt};
 
 /// Reference supplied externally.
 //TODO make an enum (Cf bottom page)
@@ -93,23 +93,23 @@ mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn project_hash_status)]
-    /// .
+    /// Status of the project.
     pub type ProjectHashStatus<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, ProjectStatus>;
 
     #[pallet::storage]
     #[pallet::getter(fn deleted_project)]
-    /// .
+    /// List of deleted projects.
     pub type DeletedProjects<T: Config> =
         StorageMap<_, Blake2_128Concat, T::Hash, Vec<DeletedProject<T::AccountId, ProjectStatus>>>;
 
     #[pallet::storage]
     #[pallet::getter(fn project_hash_owner)]
-    ///
+    /// Owner of the project.
     pub type ProjectHashOwner<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, T::AccountId>;
 
     #[pallet::storage]
     #[pallet::getter(fn owner_projects_list)]
-    ///
+    /// List of owned projects.
     pub type OwnerProjectsList<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Vec<T::Hash>>;
 
     #[pallet::config]

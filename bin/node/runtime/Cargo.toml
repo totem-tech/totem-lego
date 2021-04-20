@@ -90,10 +90,12 @@ pallet-vesting = { version = "3.0.0", default-features = false, path = "../../..
 pallet-accounting = { default-features = false, path = "../../../frame/totem/accounting" }
 pallet-archive = { default-features = false, path = "../../../frame/totem/archive" }
 pallet-bonsai = { default-features = false, path = "../../../frame/totem/bonsai" }
+pallet-funding = { default-features = false, path = "../../../frame/totem/funding" }
 pallet-orders = { default-features = false, path = "../../../frame/totem/orders" }
 pallet-prefunding = { default-features = false, path = "../../../frame/totem/prefunding" }
 pallet-teams = { default-features = false, path = "../../../frame/totem/teams" }
 pallet-timekeeping = { default-features = false, path = "../../../frame/totem/timekeeping" }
+pallet-transfer = { default-features = false, path = "../../../frame/totem/transfer" }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "4.0.0", path = "../../../utils/wasm-builder" }
@@ -167,6 +169,16 @@ std = [
 	"log/std",
 	"frame-try-runtime/std",
 	"sp-npos-elections/std",
+	# Totem
+	"pallet-accounting/std",
+	"pallet-archive/std",
+	"pallet-bonsai/std",
+	"pallet-funding/std",
+	"pallet-orders/std",
+	"pallet-prefunding/std",
+	"pallet-teams/std",
+	"pallet-timekeeping/std",
+	"pallet-transfer/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking",

@@ -66,7 +66,9 @@ pub mod bonsai {
     pub trait Storing<Hash> {
         fn claim_data(r: Hash, d: Hash) -> DispatchResultWithPostInfo;
 
-        fn store_uuid(u: Hash) -> DispatchResultWithPostInfo;
+        fn start_tx(u: Hash) -> DispatchResultWithPostInfo;
+
+        fn end_tx(u: Hash) -> DispatchResultWithPostInfo;
     }
 }
 

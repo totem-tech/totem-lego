@@ -6,11 +6,11 @@ homepage = 'https://totemaccounting.com'
 license = 'GNU'
 name = 'pallet-bonsai'
 version = '1.0.0'
-# repository = 'https://github.com/substrate-developer-hub/substrate-pallet-template/'
+repository = 'https://gitlab.com/totem-tech/totem-lego'
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-totem-utils = { path = "../utils" }
+totem-common = { path = "../common", default-features = false }
 # primitives
 sp-primitives = { package = "sp-core", path = "../../../primitives/core", default-features = false }
 sp-runtime = { path = "../../../primitives/runtime", default-features = false }
@@ -20,15 +20,15 @@ frame-support = { path = "../../support", default-features = false }
 frame-system = { path = "../../system", default-features = false }
 
 [dev-dependencies]
-#sr-io = { package = "sp-io", path = "../../primitives/io" }
-#sp-primitives = { package = "sp-core", path = "../../primitives/core" }
 
 [features]
 default = ["std"]
 std = [
 	"codec/std",
+    "totem-common/std",
+	"sp-primitives/std",
+	"sp-runtime/std",
+    "sp-std/std",
 	"frame-support/std",
 	"frame-system/std",
-	"sp-primitives/std",
-    "sp-std/std",
 ]

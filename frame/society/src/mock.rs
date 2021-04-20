@@ -30,7 +30,6 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
-use frame_system::EnsureSignedBy;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -102,6 +101,7 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
+	type Accounting = ();
 }
 
 impl Config for Test {
@@ -135,17 +135,7 @@ impl EnvBuilder {
 		Self {
 			members: vec![10],
 			balance: 10_000,
-			balances: vec![
-				(10, 50),
-				(20, 50),
-				(30, 50),
-				(40, 50),
-				(50, 50),
-				(60, 50),
-				(70, 50),
-				(80, 50),
-				(90, 50),
-			],
+			balances: vec![(10, 50), (20, 50), (30, 50), (40, 50), (50, 50), (60, 50), (70, 50), (80, 50), (90, 50)],
 			pot: 0,
 			max_members: 100,
 		}
@@ -156,12 +146,16 @@ impl EnvBuilder {
 		self.balances.push((Society::account_id(), self.balance.max(self.pot)));
 		pallet_balances::GenesisConfig::<Test> {
 			balances: self.balances,
-		}.assimilate_storage(&mut t).unwrap();
-		pallet_society::GenesisConfig::<Test>{
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+		pallet_society::GenesisConfig::<Test> {
 			members: self.members,
 			pot: self.pot,
 			max_members: self.max_members,
-		}.assimilate_storage(&mut t).unwrap();
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
 		let mut ext: sp_io::TestExternalities = t.into();
 		ext.execute_with(f)
 	}
@@ -208,12 +202,11 @@ pub fn run_to_block(n: u64) {
 pub fn create_bid<AccountId, Balance>(
 	value: Balance,
 	who: AccountId,
-	kind: BidKind<AccountId, Balance>
-) -> Bid<AccountId, Balance>
-{
+	kind: BidKind<AccountId, Balance>,
+) -> Bid<AccountId, Balance> {
 	Bid {
 		who,
 		kind,
-		value
+		value,
 	}
 }

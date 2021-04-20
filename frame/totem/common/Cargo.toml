@@ -1,12 +1,12 @@
 [package]
 authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
-description = 'Various utils'
+description = 'Code that is common to all the Totem pallets'
 edition = '2018'
 homepage = 'https://totemaccounting.com'
 license = 'GNU'
-name = 'totem-utils'
+name = 'totem-common'
 version = '1.0.0'
-# repository = 'https://github.com/substrate-developer-hub/substrate-pallet-template/'
+repository = 'https://gitlab.com/totem-tech/totem-lego'
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
@@ -15,4 +15,11 @@ sp-runtime = { path = "../../../primitives/runtime", default-features = false }
 sp-std = { path = "../../../primitives/std", default-features = false }
 
 [features]
-#default = ["std"]
+default = ["std"]
+std = [
+    "codec/std",
+	"frame-support/std",
+	"sp-runtime/std",
+    "sp-std/std",
+]
+mock = []
