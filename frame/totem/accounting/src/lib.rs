@@ -92,6 +92,7 @@ use frame_system::pallet_prelude::*;
 
 use sp_arithmetic::traits::BaseArithmetic;
 use sp_runtime::traits::{Convert, Hash, Member};
+use sp_std::collections::btree_set::BTreeSet;
 use sp_std::{prelude::*, vec};
 
 use totem_utils::traits::accounting::Posting;
@@ -157,6 +158,19 @@ pub mod pallet {
     pub type TaxesByJurisdiction<T: Config> =
         StorageMap<_, Blake2_128Concat, (T::AccountId, T::AccountId), LedgerBalance>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn test_set)]
+    /// The number of coins distributed. It should equal the sum in AccountIdBalances.
+    pub type TestSet<T: Config> = StorageValue<_, BTreeSet<u128>, ValueQuery>;
+
+    #[derive(Decode, Encode, Default)]
+    pub struct MyVec<T>(Vec<T>);
+
+    #[pallet::storage]
+    #[pallet::getter(fn test_custom_vec)]
+    /// The number of coins distributed. It should equal the sum in AccountIdBalances.
+    pub type TestCustomVec<T: Config> = StorageValue<_, MyVec<u128>, ValueQuery>;
+
     // TODO
     // Quantities Accounting
     // Depreciation (calculated everytime there is a transaction so as not to overwork the runtime) - sets "last seen block" to calculate the delta for depreciation
@@ -193,6 +207,20 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::weight(0)]
+        fn test_put_in_set(origin: OriginFor<T>, number: u128) -> DispatchResultWithPostInfo {
+            Self::test_set().insert(number);
+
+            Ok(().into())
+        }
+
+        #[pallet::weight(0)]
+        fn test_put_in_custom_vec(origin: OriginFor<T>, number: u128) -> DispatchResultWithPostInfo {
+            Self::test_custom_vec().0.push(number);
+
+            Ok(().into())
+        }
+
         #[pallet::weight(0/*TODO*/)]
         fn opening_balance(_origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             todo!()
