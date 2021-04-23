@@ -40,6 +40,17 @@ use sp_std::prelude::*;
 pub mod accounting {
     use super::*;
 
+    pub struct PostingKey<AccountId, Hash, BlockNumber, Account, LedgerBalance, PostingIndex> {
+        o: AccountId,
+        a: Account,
+        c: LedgerBalance,
+        d: bool,
+        h: Hash,
+        b: BlockNumber,
+        t: BlockNumber,
+        index: PostingIndex,
+    }
+
     /// Main Totem accounting trait.
     pub trait Posting<AccountId, Hash, BlockNumber, CoinAmount> {
         type Account: Member + Copy + Eq;
@@ -49,7 +60,6 @@ pub mod accounting {
         fn handle_multiposting_amounts(
             fwd: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
             rev: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-            trk: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
         ) -> DispatchResultWithPostInfo;
 
         fn account_for_fees(f: CoinAmount, p: AccountId) -> DispatchResultWithPostInfo;

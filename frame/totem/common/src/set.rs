@@ -33,54 +33,34 @@
 // You should have received a copy of the GNU General Public License
 // along with Totem.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Various cross-pallet utils.
+//! A collection based on `Vec` that guarantees that every member is unique.
 
-#![cfg_attr(not(feature = "std"), no_std)]
+use codec::{Decode, Encode};
+use sp_std::prelude::*;
 
-mod mock;
-pub mod record_type;
-pub mod set;
-pub mod traits;
-pub mod types;
+#[derive(Decode, Encode)]
+pub struct Set<T>(Vec<T>);
 
-use codec::{Decode, Encode, EncodeLike, FullCodec, FullEncode, WrapperTypeEncode};
-use frame_support::{dispatch::DispatchResultWithPostInfo, storage::StorageMap};
-
-/// Easy return of an OK dispatch with no content.
-pub fn ok() -> DispatchResultWithPostInfo {
-    Ok(().into())
-}
-
-/// In addition to `StorageMap`, says if the mutation succeded.
-pub enum Update {
-    Done,
-    KeyNotFound,
-}
-
-/// Adds behavior to `StorageMap`s.
-pub trait StorageMapExt<K, V>
-where
-    Self: StorageMap<K, V>,
-    K: FullEncode + Encode + EncodeLike,
-    V: FullCodec + Decode + FullEncode + Encode + EncodeLike + WrapperTypeEncode,
-{
-    /// If the key exists in the map, modifies it with the provided function, and returns `Update::Done`.
-    /// Otherwise, it does nothing and returns `Update::KeyNotFound`.
-    fn mutate_<KeyArg: EncodeLike<K>, F: FnOnce(&mut V)>(key: KeyArg, f: F) -> Update {
-        Self::mutate_exists(key, |option| match option.as_mut() {
-            Some(value) => {
-                f(value);
-                Update::Done
-            }
-            None => Update::KeyNotFound,
-        })
+impl<T> Default for Set<T> {
+    fn default() -> Self {
+        Set(Default::default())
     }
 }
 
-impl<T, K, V> StorageMapExt<K, V> for T
+impl<T> Set<T>
 where
-    T: StorageMap<K, V>,
-    K: FullEncode + Encode + EncodeLike,
-    V: FullCodec + Decode + FullEncode + Encode + EncodeLike + WrapperTypeEncode,
+    T: Eq,
 {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn insert(&mut self, elem: T) {
+        self.remove(&elem);
+        self.0.push(elem)
+    }
+
+    pub fn remove(&mut self, elem: &T) {
+        self.0.retain(|x| x != elem)
+    }
 }

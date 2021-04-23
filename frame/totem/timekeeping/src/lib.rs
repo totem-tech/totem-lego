@@ -50,7 +50,7 @@
 
 mod tests;
 
-use frame_support::{dispatch::EncodeLike, dispatch::Input, fail, pallet_prelude::*};
+use frame_support::{dispatch::EncodeLike, sp_runtime::traits::Hash, dispatch::Input, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;
@@ -449,9 +449,9 @@ mod pallet {
             project_hash: T::Hash,
             input_time_hash: T::Hash,
             submit_status: StatusOfTimeRecord,
-            reason_for_change: ReasonCodeStruct,
+            _reason_for_change: ReasonCodeStruct,
             number_of_blocks: NumberOfBlocks,
-            posting_period: PostingPeriod,
+            _posting_period: PostingPeriod,
             start_block_number: StartOrEndBlockNumber,
             end_block_number: StartOrEndBlockNumber,
             break_counter: NumberOfBreaks,
@@ -478,7 +478,7 @@ mod pallet {
             // 0x6c9596f9ca96adf2334c4761bc161442a32ef16896427b6d43fc5e9353bbab63
 
             let default_bytes = "Default hash";
-            let default_hash: T::Hash = todo!(); //T::Hashing::hash(&default_bytes.encode().as_slice()); // default hash BlakeTwo256
+            let default_hash: T::Hash = T::Hashing::hash(&default_bytes.encode().as_slice()); // default hash BlakeTwo256
 
             // set default lock and reason code and type default values (TODO should come from extrinsic in future)
             let initial_submit_reason = ReasonCodeStruct(0, 0);
@@ -504,7 +504,7 @@ mod pallet {
                 };
 
                 // Create a new random hash
-                let time_hash: T::Hash = todo!(); //time_data.clone().using_encoded(<T as frame_system::Config>::Hashing::hash);
+                let time_hash: T::Hash = time_data.clone().using_encoded(<T as frame_system::Config>::Hashing::hash);
 
                 // Now update all time relevant records
                 WorkerTimeRecordsHashList::<T>::mutate_(&who, |worker_time_records_hash_list| {
@@ -525,7 +525,7 @@ mod pallet {
                 // find out if this is a genuine original key
                 let original_time_key = input_time_hash.clone();
 
-                let old_time_record =
+                let mut old_time_record =
                     Self::time_record(&original_time_key).ok_or(Error::<T>::TimeRecordNotFromWorker)?;
                 ensure!(old_time_record.locked_status == false, Error::<T>::TimeRecordLocked);
 
@@ -655,11 +655,11 @@ mod pallet {
         /// Project owner sets authorisation status of time record.
         fn authorise_time(
             origin: OriginFor<T>,
-            worker: T::AccountId,
+            _worker: T::AccountId,
             project_hash: T::Hash,
             input_time_hash: T::Hash,
             status_of_record: StatusOfTimeRecord,
-            reason: ReasonCodeStruct,
+            _reason: ReasonCodeStruct,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 

@@ -1147,9 +1147,9 @@ mod totem {
 
 	impl pallet_transfer::Config for Runtime {
 		type Event = Event;
-		type Currency = pallet_balances::Module<Self>;
+		type Currency = pallet_balances::Pallet<Self>;
 		type TransferConversions = conversion_handler::ConversionHandler;
-		type Bonsai = pallet_bonsai::Module<Self>;
+		type Bonsai = pallet_bonsai::Pallet<Self>;
 	}
 }
 

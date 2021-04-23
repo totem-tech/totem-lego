@@ -536,17 +536,7 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
             (who.clone(), account_4, decrease_amount, false, prefunding_hash, current_block, current_block_dupe),
         ];
 
-        let track_rev_keys = Vec::<(
-            T::AccountId,
-            AccountOf<T>,
-            AccountBalanceOf<T>,
-            bool,
-            T::Hash,
-            T::BlockNumber,
-            T::BlockNumber,
-        )>::with_capacity(9);
-
-        if let Err(_) = T::Accounting::handle_multiposting_amounts(forward_keys, reversal_keys, track_rev_keys) {
+        if let Err(_) = T::Accounting::handle_multiposting_amounts(forward_keys, reversal_keys) {
             fail!(Error::<T>::ErrorInAccounting1);
         }
 
@@ -634,17 +624,7 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
             (p.clone(), account_7, decrease_amount, false, h, current_block, current_block_dupe),
         ];
 
-        let track_rev_keys = Vec::<(
-            T::AccountId,
-            AccountOf<T>,
-            AccountBalanceOf<T>,
-            bool,
-            T::Hash,
-            T::BlockNumber,
-            T::BlockNumber,
-        )>::with_capacity(9);
-
-        if let Err(_) = T::Accounting::handle_multiposting_amounts(forward_keys, reversal_keys, track_rev_keys) {
+        if let Err(_) = T::Accounting::handle_multiposting_amounts(forward_keys, reversal_keys) {
             fail!(Error::<T>::ErrorInAccounting2);
         }
 
@@ -737,18 +717,7 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
                     (details.clone(), account_9, increase_amount, true, h, current_block, current_block_dupe),
                 ];
 
-                let track_rev_keys = Vec::<(
-                    T::AccountId,
-                    AccountOf<T>,
-                    AccountBalanceOf<T>,
-                    bool,
-                    T::Hash,
-                    T::BlockNumber,
-                    T::BlockNumber,
-                )>::with_capacity(9);
-
-                if let Err(_) = T::Accounting::handle_multiposting_amounts(forward_keys, reversal_keys, track_rev_keys)
-                {
+                if let Err(_) = T::Accounting::handle_multiposting_amounts(forward_keys, reversal_keys) {
                     fail!(Error::<T>::ErrorInAccounting3);
                 }
 

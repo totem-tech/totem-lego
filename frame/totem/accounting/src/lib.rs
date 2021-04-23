@@ -87,11 +87,10 @@
 
 pub mod mock;
 
-use frame_support::{codec::Codec, dispatch::EncodeLike, fail, pallet_prelude::*};
+use frame_support::{dispatch::EncodeLike, fail, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 
-use sp_arithmetic::traits::BaseArithmetic;
-use sp_runtime::traits::{Convert, Hash, Member};
+use sp_runtime::traits::{Convert, Hash};
 use sp_std::{prelude::*, vec};
 
 use totem_common::traits::accounting::Posting;
@@ -247,6 +246,7 @@ impl<T: Config> Pallet<T> {
 
         PostingNumber::<T>::put(posting_index);
         IdAccountPostingIdList::<T>::mutate_(&balance_key, |list| list.push(posting_index));
+        //TODO Use a set?
         AccountsById::<T>::mutate_(&o, |accounts_by_id| accounts_by_id.retain(|h| h != &a));
         AccountsById::<T>::mutate_(&o, |accounts_by_id| accounts_by_id.push(a));
         BalanceByLedger::<T>::insert(&balance_key, new_balance);
@@ -277,32 +277,32 @@ where
     /// Therefore the recipes that are passed as arguments need to be be accompanied with a reversal
     /// Obviously the last posting does not need a reversal for if it errors, then it was not posted in the first place.
     fn handle_multiposting_amounts(
-        fwd: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
-        rev: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
-        mut trk: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
+        forward: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
+        reverse: Vec<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>,
     ) -> DispatchResultWithPostInfo {
-        let length_limit = rev.len();
+        ensure!(forward.len() - reverse.len() == 1, "Ill-formed operation");
+
+        let mut tracking = Vec::with_capacity(forward.len());
+        let reverse = reverse.into_iter().map(Some).chain(core::iter::once(None));
 
         // Iterate over forward keys. If Ok add reversal key to tracking, if error, then reverse out prior postings.
-        for (pos, a) in fwd.clone().iter().enumerate() {
-            match Self::post_amounts(a.clone()) {
-                Ok(_) => {
-                    if pos < length_limit {
-                        trk.push(rev[pos].clone())
+        for (fwd, rev) in forward.into_iter().zip(reverse) {
+            if let Err(_) = Self::post_amounts(fwd) {
+                // Error before the value was updated. Need to reverse-out the earlier debit amount and account combination
+                // as this has already changed in storage.
+                for trk in tracking.into_iter() {
+                    if let Err(_e) = Self::post_amounts(trk) {
+                        fail!(Error::<T>::SystemFailure);
                     }
                 }
-                Err(_e) => {
-                    // Error before the value was updated. Need to reverse-out the earlier debit amount and account combination
-                    // as this has already changed in storage.
-                    for b in trk.iter() {
-                        if let Err(_e) = Self::post_amounts(b.clone()) {
-                            fail!(Error::<T>::SystemFailure);
-                        }
-                    }
-                    fail!(Error::<T>::AmountOverflow);
-                }
+                fail!(Error::<T>::AmountOverflow);
+            }
+
+            if let Some(rev) = rev {
+                tracking.push(rev)
             }
         }
+
         ok()
     }
 
@@ -350,12 +350,7 @@ where
             (payer.clone(), account_2, increase_amount, true, fee_hash, current_block, current_block_dupe),
         ];
 
-        let track_rev_keys =
-            Vec::<(T::AccountId, Account, LedgerBalance, bool, T::Hash, T::BlockNumber, T::BlockNumber)>::with_capacity(
-                2,
-            );
-
-        Self::handle_multiposting_amounts(forward_keys, reversal_keys, track_rev_keys)
+        Self::handle_multiposting_amounts(forward_keys, reversal_keys)
     }
 
     fn get_pseudo_random_hash(sender: T::AccountId, recipient: T::AccountId) -> T::Hash {

@@ -45,6 +45,7 @@ mod pallet {
     use frame_support::{fail, pallet_prelude::*};
     use frame_system::pallet_prelude::*;
     use sp_std::prelude::*;
+    use totem_common::set::Set;
 
     #[derive(PartialEq, Eq, Clone, Encode, Decode, Default)]
     #[cfg_attr(feature = "std", derive(Debug))]
@@ -94,7 +95,7 @@ mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn holders_account_ids)]
     /// List of account Ids who have tokens (updated when token value is 0)
-    pub type HoldersAccountIds<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+    pub type HoldersAccountIds<T: Config> = StorageValue<_, Set<T::AccountId>, ValueQuery>;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -203,7 +204,7 @@ mod pallet {
             }
 
             // Those should never error.
-            let unissued = Self::unissued().checked_sub(amount).ok_or(Error::<T>::Overflow)?;
+            let unissued = unissued.checked_sub(amount).ok_or(Error::<T>::Overflow)?;
             let issued = Self::issued().checked_add(amount).ok_or(Error::<T>::Overflow)?;
 
             UnIssued::<T>::put(unissued);
@@ -227,14 +228,14 @@ mod pallet {
                 fail!(Error::<T>::InsufficientFunds);
             }
 
-            let issued = Self::issued().checked_sub(amount).ok_or(Error::<T>::Overflow)?;
-            let new_balance;
-            match Self::account_id_balances(&to) {
+            let issued = issued.checked_sub(amount).ok_or(Error::<T>::Overflow)?;
+            let new_balance = match Self::account_id_balances(&to) {
                 Some(b) => {
-                    new_balance = b.checked_add(amount).ok_or(Error::<T>::Overflow)?;
+                    let new_balance = b.checked_add(amount).ok_or(Error::<T>::Overflow)?;
                     AccountIdBalances::<T>::take(&to);
+                    new_balance
                 }
-                None => new_balance = 0,
+                None => 0,
             };
             // Ensure that the amount to send is less the available funds.
             let total_distributed = Self::total_distributed().checked_add(amount).ok_or(Error::<T>::Overflow)?;
@@ -242,7 +243,7 @@ mod pallet {
             Issued::<T>::put(issued);
             AccountIdBalances::<T>::insert(&to, new_balance);
             TotalDistributed::<T>::put(total_distributed);
-            HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.push(to));
+            HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.insert(to));
 
             Ok(().into())
         }
@@ -261,31 +262,28 @@ mod pallet {
             let new_sender_balance = Self::account_id_balances(&from).ok_or(Error::<T>::InsufficientFunds)?;
             let new_receiver_balance = Self::account_id_balances(&to).unwrap_or(0);
 
-            if new_sender_balance < amount {
-                fail!(Error::<T>::InsufficientFunds);
-            } else if new_sender_balance > amount {
-                // reduce balance on sender
-                let new_sender_balance = new_sender_balance.checked_sub(amount).ok_or(Error::<T>::Overflow)?;
-                // increase balance on receiver
-                let new_receiver_balance = new_receiver_balance.checked_add(amount).ok_or(Error::<T>::Overflow)?;
+            match new_sender_balance.cmp(&amount) {
+                core::cmp::Ordering::Less => fail!(Error::<T>::InsufficientFunds),
+                core::cmp::Ordering::Greater => {
+                    // reduce balance on sender
+                    let new_sender_balance = new_sender_balance.checked_sub(amount).ok_or(Error::<T>::Overflow)?;
+                    // increase balance on receiver
+                    let new_receiver_balance = new_receiver_balance.checked_add(amount).ok_or(Error::<T>::Overflow)?;
 
-                AccountIdBalances::<T>::insert(&from, new_sender_balance);
-                AccountIdBalances::<T>::insert(&to, new_receiver_balance);
-                // Following ensures that only one entry exists in the list of addresses with funds.
-                HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.retain(|t| t != &to));
-                HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.push(to));
-            } else {
-                let new_receiver_balance =
-                    Self::account_id_balances(&to).unwrap_or(0).checked_add(amount).ok_or(Error::<T>::Overflow)?;
-
-                // balance of sender will be 0 remove from table
-                AccountIdBalances::<T>::remove(&from);
-                HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.retain(|f| f != &from));
-                // increase balance on receiver
-                AccountIdBalances::<T>::insert(&to, new_receiver_balance);
-                // Following ensures that only one entry exists in the list of addresses with funds.
-                HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.retain(|t| t != &to));
-                HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.push(to));
+                    AccountIdBalances::<T>::insert(&from, new_sender_balance);
+                    AccountIdBalances::<T>::insert(&to, new_receiver_balance);
+                    HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.insert(to));
+                }
+                core::cmp::Ordering::Equal => {
+                    let new_receiver_balance =
+                        Self::account_id_balances(&to).unwrap_or(0).checked_add(amount).ok_or(Error::<T>::Overflow)?;
+                    // balance of sender will be 0 remove from table
+                    AccountIdBalances::<T>::remove(&from);
+                    HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.remove(&from));
+                    // increase balance on receiver
+                    AccountIdBalances::<T>::insert(&to, new_receiver_balance);
+                    HoldersAccountIds::<T>::mutate(|holders_account_ids| holders_account_ids.insert(to));
+                }
             }
 
             Ok(().into())
