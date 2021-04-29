@@ -49,6 +49,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use core::convert::TryFrom;
+
 use frame_support::{
     dispatch::EncodeLike,
     fail,
@@ -61,7 +63,10 @@ use pallet_balances::totem::TotemLockableCurrency;
 use sp_runtime::traits::{Convert, Hash};
 use sp_std::{prelude::*, vec};
 
-use totem_common::traits::{accounting::Posting, prefunding::Encumbrance};
+use totem_common::traits::{
+    accounting::{Indicator::*, Posting, Record as PostingRecord},
+    prefunding::Encumbrance,
+};
 use totem_common::types::ComparisonAmounts;
 use totem_common::{ok, StorageMapExt};
 
@@ -233,6 +238,8 @@ pub mod pallet {
         ErrorCancelFailed,
         /// Cancelling prefunding failed for some reason
         ErrorCancelFailed2,
+        /// Value overflowed during computation.
+        Overflow,
     }
 
     #[pallet::hooks]
@@ -482,25 +489,18 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
         uid: T::Hash,
     ) -> DispatchResultWithPostInfo {
         // As amount will always be positive, convert for use in accounting
-        let amount_converted: AccountBalanceOf<T> =
-            <T::PrefundingConversions as Convert<u128, AccountBalanceOf<T>>>::convert(amount);
-        // Convert this for the inversion
-        let to_invert: i128 =
-            <T::PrefundingConversions as Convert<AccountBalanceOf<T>, i128>>::convert(amount_converted.clone());
-        // invert the amount
-        let to_invert = to_invert * -1;
-        let increase_amount: AccountBalanceOf<T> = amount_converted.clone();
-        let decrease_amount: AccountBalanceOf<T> =
-            <T::PrefundingConversions as Convert<i128, AccountBalanceOf<T>>>::convert(to_invert);
+        let increase_amount: AccountBalanceOf<T> = T::PrefundingConversions::convert(amount);
+        // Invert the amount
+        let decrease_amount: AccountBalanceOf<T> = {
+            let to_invert = i128::try_from(amount).or(Err(Error::<T>::Overflow))?;
+            T::PrefundingConversions::convert(-1 * to_invert)
+        };
         let current_block = <frame_system::Pallet<T>>::block_number();
         // Prefunding is always recorded in the same block. It cannot be posted to another period
         let current_block_dupe = <frame_system::Pallet<T>>::block_number();
         let prefunding_hash: T::Hash = ref_hash.clone();
         // convert the account balanace to the currency balance (i128 -> u128)
-        let currency_amount: CurrencyBalanceOf<T> = <T::PrefundingConversions as Convert<
-            AccountBalanceOf<T>,
-            CurrencyBalanceOf<T>,
-        >>::convert(amount_converted.clone());
+        let currency_amount: CurrencyBalanceOf<T> = T::PrefundingConversions::convert(increase_amount.clone());
         // NEED TO CHECK THAT THE DEADLINE IS SENSIBLE!!!!
         // 48 hours is the minimum deadline. This is the minimum amountof time before the money can be reclaimed
         let minimum_deadline: T::BlockNumber =
@@ -511,32 +511,55 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
         let prefunded = (currency_amount, deadline.clone());
         let owners = (who.clone(), true, recipient.clone(), false);
         // manage the deposit
-        if let Err(_) = Self::set_prefunding(who.clone(), amount_converted.clone(), deadline, prefunding_hash, uid) {
+        if let Err(_) = Self::set_prefunding(who.clone(), increase_amount.clone(), deadline, prefunding_hash, uid) {
             fail!(Error::<T>::ErrorPrefundNotSet);
         }
+
         // Deposit taken at this point. Note that if an error occurs beyond here we need to remove the locked funds.
-        // Buyer
-        let account_1 = T::PrefundingConversions::convert(110_10005000_0000_u64); // debit  increase 110100050000000 Prefunding Account
-        let account_2 = T::PrefundingConversions::convert(110_10004000_0000_u64); // credit decrease 110100040000000 XTX Balance
-        let account_3 = T::PrefundingConversions::convert(360_60002000_0000_u64); // debit  increase 360600020000000 Runtime Ledger by Module
-        let account_4 = T::PrefundingConversions::convert(360_60006000_0000_u64); // debit  increase 360600060000000 Runtime Ledger Control
-
-        // Keys for posting
-        let forward_keys = vec![
-            (who.clone(), account_1, increase_amount, true, prefunding_hash, current_block, current_block_dupe),
-            (who.clone(), account_2, decrease_amount, false, prefunding_hash, current_block, current_block_dupe),
-            (who.clone(), account_3, increase_amount, true, prefunding_hash, current_block, current_block_dupe),
-            (who.clone(), account_4, increase_amount, true, prefunding_hash, current_block, current_block_dupe),
+        let keys = vec![
+            PostingRecord::new(
+                who.clone(),
+                who.clone(),
+                T::PrefundingConversions::convert(110_10005000_0000_u64), // debit  increase 110100050000000 Prefunding Account
+                increase_amount,
+                Credit,
+                prefunding_hash,
+                current_block,
+                current_block_dupe,
+            ),
+            PostingRecord::new(
+                who.clone(),
+                who.clone(),
+                T::PrefundingConversions::convert(110_10004000_0000_u64), // credit decrease 110100040000000 XTX Balance
+                decrease_amount,
+                Debit,
+                prefunding_hash,
+                current_block,
+                current_block_dupe,
+            ),
+            PostingRecord::new(
+                who.clone(),
+                who.clone(),
+                T::PrefundingConversions::convert(360_60002000_0000_u64), // debit  increase 360600020000000 Runtime Ledger by Module
+                increase_amount,
+                Credit,
+                prefunding_hash,
+                current_block,
+                current_block_dupe,
+            ),
+            PostingRecord::new(
+                who.clone(),
+                who.clone(),
+                T::PrefundingConversions::convert(360_60006000_0000_u64), // debit  increase 360600060000000 Runtime Ledger Control
+                increase_amount,
+                Credit,
+                prefunding_hash,
+                current_block,
+                current_block_dupe,
+            ),
         ];
-        // Reversal keys in case of errors
-        let reversal_keys = vec![
-            (who.clone(), account_1, decrease_amount, false, prefunding_hash, current_block, current_block_dupe),
-            (who.clone(), account_2, increase_amount, true, prefunding_hash, current_block, current_block_dupe),
-            (who.clone(), account_3, decrease_amount, false, prefunding_hash, current_block, current_block_dupe),
-            (who.clone(), account_4, decrease_amount, false, prefunding_hash, current_block, current_block_dupe),
-        ];
 
-        if let Err(_) = T::Accounting::handle_multiposting_amounts(forward_keys, reversal_keys) {
+        if let Err(_) = T::Accounting::handle_multiposting_amounts(keys) {
             fail!(Error::<T>::ErrorInAccounting1);
         }
 
@@ -579,52 +602,97 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
         // In order to proceed with a credit note, validate that the vendor has sufficient funds.
         // If they do not have sufficient funds, the credit note can still be issued, but will remain outstanding until it is settled.
         // As amount will always be positive, convert for use in accounting
-        let amount_converted: AccountBalanceOf<T> =
-            <T::PrefundingConversions as Convert<i128, AccountBalanceOf<T>>>::convert(n);
-        // invert the amount
-        let inverted: i128 = n * -1;
-        let increase_amount: AccountBalanceOf<T> = amount_converted.clone();
-        let decrease_amount: AccountBalanceOf<T> =
-            <T::PrefundingConversions as Convert<i128, AccountBalanceOf<T>>>::convert(inverted);
+        let amount_converted = T::PrefundingConversions::convert(n);
         let current_block = frame_system::Pallet::<T>::block_number();
         let current_block_dupe = frame_system::Pallet::<T>::block_number();
 
-        // Seller
-        let account_1 = T::PrefundingConversions::convert(110_10008000_0000_u64); // Debit  increase 110100080000000	Accounts receivable (Sales Control Account or Trade Debtor's Account)
-        let account_2 = T::PrefundingConversions::convert(240_40001000_0000_u64); // Credit increase 240400010000000	Product or Service Sales
-        let account_3 = T::PrefundingConversions::convert(360_60001000_0000_u64); // Debit  increase 360600010000000	Sales Ledger by Payer
-        let account_4 = T::PrefundingConversions::convert(360_60005000_0000_u64); // Debit  increase 360600050000000	Sales Ledger Control
-
-        // Buyer
-        let account_5 = T::PrefundingConversions::convert(120_20003000_0000_u64); // Credit increase 120200030000000	Accounts payable
-        let account_6 = T::PrefundingConversions::convert(250_50012000_0013_u64); // Debit  increase 250500120000013	Labour
-        let account_7 = T::PrefundingConversions::convert(360_60003000_0000_u64); // Debit  increase 360600030000000	Purchase Ledger by Vendor
-        let account_8 = T::PrefundingConversions::convert(360_60007000_0000_u64); // Debit  increase 360600070000000	Purchase Ledger Control
-
         // Keys for posting
-        let forward_keys = vec![
-            (o.clone(), account_1, increase_amount, true, h, current_block, current_block_dupe),
-            (o.clone(), account_2, increase_amount, false, h, current_block, current_block_dupe),
-            (o.clone(), account_3, increase_amount, true, h, current_block, current_block_dupe),
-            (o.clone(), account_4, increase_amount, true, h, current_block, current_block_dupe),
-            (p.clone(), account_5, increase_amount, false, h, current_block, current_block_dupe),
-            (p.clone(), account_6, increase_amount, true, h, current_block, current_block_dupe),
-            (p.clone(), account_7, increase_amount, true, h, current_block, current_block_dupe),
-            (p.clone(), account_8, increase_amount, true, h, current_block, current_block_dupe),
+        let keys = vec![
+            // Seller
+            PostingRecord::new(
+                o.clone(),
+                o.clone(),
+                T::PrefundingConversions::convert(110_10008000_0000_u64), // Debit  increase 110100080000000	Accounts receivable (Sales Control Account or Trade Debtor's Account)
+                amount_converted,
+                Credit,
+                h,
+                current_block,
+                current_block_dupe,
+            ),
+            PostingRecord::new(
+                o.clone(),
+                o.clone(),
+                T::PrefundingConversions::convert(240_40001000_0000_u64), // Credit increase 240400010000000	Product or Service Sales
+                amount_converted,
+                Debit,
+                h,
+                current_block,
+                current_block_dupe,
+            ),
+            PostingRecord::new(
+                o.clone(),
+                o.clone(),
+                T::PrefundingConversions::convert(360_60001000_0000_u64), // Debit  increase 360600010000000	Sales Ledger by Payer
+                amount_converted,
+                Credit,
+                h,
+                current_block,
+                current_block_dupe,
+            ),
+            PostingRecord::new(
+                o.clone(),
+                o.clone(),
+                T::PrefundingConversions::convert(360_60005000_0000_u64), // Debit  increase 360600050000000	Sales Ledger Control
+                amount_converted,
+                Credit,
+                h,
+                current_block,
+                current_block_dupe,
+            ),
+            // Buyer
+            PostingRecord::new(
+                p.clone(),
+                p.clone(),
+                T::PrefundingConversions::convert(120_20003000_0000_u64), // Credit increase 120200030000000	Accounts payable
+                amount_converted,
+                Debit,
+                h,
+                current_block,
+                current_block_dupe,
+            ),
+            PostingRecord::new(
+                p.clone(),
+                p.clone(),
+                T::PrefundingConversions::convert(250_50012000_0013_u64), // Debit  increase 250500120000013	Labour
+                amount_converted,
+                Credit,
+                h,
+                current_block,
+                current_block_dupe,
+            ),
+            PostingRecord::new(
+                p.clone(),
+                p.clone(),
+                T::PrefundingConversions::convert(360_60003000_0000_u64), // Debit  increase 360600030000000	Purchase Ledger by Vendor
+                amount_converted,
+                Credit,
+                h,
+                current_block,
+                current_block_dupe,
+            ),
+            PostingRecord::new(
+                p.clone(),
+                p.clone(),
+                T::PrefundingConversions::convert(360_60007000_0000_u64), // Debit  increase 360600070000000	Purchase Ledger Control
+                amount_converted,
+                Credit,
+                h,
+                current_block,
+                current_block_dupe,
+            ),
         ];
 
-        // Reversal keys in case of errors
-        let reversal_keys = vec![
-            (o.clone(), account_1, decrease_amount, false, h, current_block, current_block_dupe),
-            (o.clone(), account_2, decrease_amount, true, h, current_block, current_block_dupe),
-            (o.clone(), account_3, decrease_amount, false, h, current_block, current_block_dupe),
-            (o.clone(), account_4, decrease_amount, false, h, current_block, current_block_dupe),
-            (p.clone(), account_5, decrease_amount, true, h, current_block, current_block_dupe),
-            (p.clone(), account_6, decrease_amount, false, h, current_block, current_block_dupe),
-            (p.clone(), account_7, decrease_amount, false, h, current_block, current_block_dupe),
-        ];
-
-        if let Err(_) = T::Accounting::handle_multiposting_amounts(forward_keys, reversal_keys) {
+        if let Err(_) = T::Accounting::handle_multiposting_amounts(keys) {
             fail!(Error::<T>::ErrorInAccounting2);
         }
 
@@ -661,63 +729,121 @@ impl<T: Config> Encumbrance<T::AccountId, T::Hash, T::BlockNumber> for Pallet<T>
                 // get prefunding amount for posting to accounts
                 let (prefunded_amount, _) = Self::prefunding(&h).ok_or(Error::<T>::ErrorNoPrefunding)?;
                 // convert to Account Balance type
-                let amount: AccountBalanceOf<T> = <T::PrefundingConversions as Convert<
-                    CurrencyBalanceOf<T>,
-                    AccountBalanceOf<T>,
-                >>::convert(prefunded_amount.into());
-                // Convert for calculation
-                let inverted =
-                    -1 * <T::PrefundingConversions as Convert<AccountBalanceOf<T>, i128>>::convert(amount.clone());
-                let increase_amount = amount;
-                let decrease_amount =
-                    <T::PrefundingConversions as Convert<i128, AccountBalanceOf<T>>>::convert(inverted);
+                let increase_amount: AccountBalanceOf<T> = T::PrefundingConversions::convert(prefunded_amount);
+                let decrease_amount: AccountBalanceOf<T> = {
+                    let to_invert: i128 = T::PrefundingConversions::convert(increase_amount.clone());
+                    T::PrefundingConversions::convert(-1 * to_invert)
+                };
                 let current_block = frame_system::Pallet::<T>::block_number();
                 let current_block_dupe = frame_system::Pallet::<T>::block_number();
 
-                let account_1 = T::PrefundingConversions::convert(120_20003000_0000_u64); // 120200030000000	Debit  decrease Accounts payable
-                let account_2 = T::PrefundingConversions::convert(110_10005000_0000_u64); // 110100050000000	Credit decrease Totem Runtime Deposit (Escrow)
-                let account_3 = T::PrefundingConversions::convert(360_60002000_0000_u64); // 360600020000000	Credit decrease Runtime Ledger by Module
-                let account_4 = T::PrefundingConversions::convert(360_60006000_0000_u64); // 360600060000000	Credit decrease Runtime Ledger Control
-                let account_5 = T::PrefundingConversions::convert(360_60003000_0000_u64); // 360600030000000	Credit decrease Purchase Ledger by Vendor
-                let account_6 = T::PrefundingConversions::convert(360_60007000_0000_u64); // 360600070000000	Credit decrease Purchase Ledger Control
-
-                let account_7 = T::PrefundingConversions::convert(110_10004000_0000_u64); // 110100040000000	Debit  increase XTX Balance
-                let account_8 = T::PrefundingConversions::convert(110_10008000_0000_u64); // 110100080000000	Credit decrease Accounts receivable (Sales Control Account or Trade Debtor's Account)
-                let account_9 = T::PrefundingConversions::convert(360_60001000_0000_u64); // 360600010000000	Credit decrease Sales Ledger by Payer
-                let account_10 = T::PrefundingConversions::convert(360_60005000_0000_u64); // 360600050000000	Credit decrease Sales Ledger Control
-
                 // Keys for posting
-                let forward_keys = vec![
+                let keys = vec![
                     // Buyer
-                    (o.clone(), account_1, decrease_amount, true, h, current_block, current_block_dupe),
-                    (o.clone(), account_2, decrease_amount, false, h, current_block, current_block_dupe),
-                    (o.clone(), account_3, decrease_amount, false, h, current_block, current_block_dupe),
-                    (o.clone(), account_4, decrease_amount, false, h, current_block, current_block_dupe),
-                    (o.clone(), account_5, decrease_amount, false, h, current_block, current_block_dupe),
-                    (o.clone(), account_6, decrease_amount, false, h, current_block, current_block_dupe),
+                    PostingRecord::new(
+                        o.clone(),
+                        o.clone(),
+                        T::PrefundingConversions::convert(120_20003000_0000_u64), // 120200030000000	Debit  decrease Accounts payable
+                        decrease_amount,
+                        Credit,
+                        h,
+                        current_block,
+                        current_block_dupe,
+                    ),
+                    PostingRecord::new(
+                        o.clone(),
+                        o.clone(),
+                        T::PrefundingConversions::convert(110_10005000_0000_u64), // 110100050000000	Credit decrease Totem Runtime Deposit (Escrow)
+                        decrease_amount,
+                        Debit,
+                        h,
+                        current_block,
+                        current_block_dupe,
+                    ),
+                    PostingRecord::new(
+                        o.clone(),
+                        o.clone(),
+                        T::PrefundingConversions::convert(360_60002000_0000_u64), // 360600020000000	Credit decrease Runtime Ledger by Module
+                        decrease_amount,
+                        Debit,
+                        h,
+                        current_block,
+                        current_block_dupe,
+                    ),
+                    PostingRecord::new(
+                        o.clone(),
+                        o.clone(),
+                        T::PrefundingConversions::convert(360_60006000_0000_u64), // 360600060000000	Credit decrease Runtime Ledger Control
+                        decrease_amount,
+                        Debit,
+                        h,
+                        current_block,
+                        current_block_dupe,
+                    ),
+                    PostingRecord::new(
+                        o.clone(),
+                        o.clone(),
+                        T::PrefundingConversions::convert(360_60003000_0000_u64), // 360600030000000	Credit decrease Purchase Ledger by Vendor
+                        decrease_amount,
+                        Debit,
+                        h,
+                        current_block,
+                        current_block_dupe,
+                    ),
+                    PostingRecord::new(
+                        o.clone(),
+                        o.clone(),
+                        T::PrefundingConversions::convert(360_60007000_0000_u64), // 360600070000000	Credit decrease Purchase Ledger Control
+                        decrease_amount,
+                        Debit,
+                        h,
+                        current_block,
+                        current_block_dupe,
+                    ),
                     // Seller
-                    (details.clone(), account_7, increase_amount, true, h, current_block, current_block_dupe),
-                    (details.clone(), account_8, decrease_amount, false, h, current_block, current_block_dupe),
-                    (details.clone(), account_9, decrease_amount, false, h, current_block, current_block_dupe),
-                    (details.clone(), account_10, decrease_amount, false, h, current_block, current_block_dupe),
+                    PostingRecord::new(
+                        details.clone(),
+                        details.clone(),
+                        T::PrefundingConversions::convert(110_10004000_0000_u64), // 110100040000000	Debit  increase XTX Balance
+                        increase_amount,
+                        Credit,
+                        h,
+                        current_block,
+                        current_block_dupe,
+                    ),
+                    PostingRecord::new(
+                        details.clone(),
+                        details.clone(),
+                        T::PrefundingConversions::convert(110_10008000_0000_u64), // 110100080000000	Credit decrease Accounts receivable (Sales Control Account or Trade Debtor's Account)
+                        decrease_amount,
+                        Debit,
+                        h,
+                        current_block,
+                        current_block_dupe,
+                    ),
+                    PostingRecord::new(
+                        details.clone(),
+                        details.clone(),
+                        T::PrefundingConversions::convert(360_60001000_0000_u64), // 360600010000000	Credit decrease Sales Ledger by Payer
+                        decrease_amount,
+                        Debit,
+                        h,
+                        current_block,
+                        current_block_dupe,
+                    ),
+                    PostingRecord::new(
+                        details.clone(),
+                        details.clone(),
+                        T::PrefundingConversions::convert(360_60005000_0000_u64), // 360600050000000	Credit decrease Sales Ledger Control
+                        decrease_amount,
+                        Debit,
+                        h,
+                        current_block,
+                        current_block_dupe,
+                    ),
                 ];
 
-                // Reversal keys in case of errors
-                let reversal_keys = vec![
-                    // Buyer
-                    (o.clone(), account_1, increase_amount, false, h, current_block, current_block_dupe),
-                    (o.clone(), account_2, increase_amount, true, h, current_block, current_block_dupe),
-                    (o.clone(), account_3, increase_amount, true, h, current_block, current_block_dupe),
-                    (o.clone(), account_4, increase_amount, true, h, current_block, current_block_dupe),
-                    (o.clone(), account_5, increase_amount, true, h, current_block, current_block_dupe),
-                    (o.clone(), account_6, increase_amount, true, h, current_block, current_block_dupe),
-                    // Seller
-                    (details.clone(), account_7, decrease_amount, false, h, current_block, current_block_dupe),
-                    (details.clone(), account_8, increase_amount, true, h, current_block, current_block_dupe),
-                    (details.clone(), account_9, increase_amount, true, h, current_block, current_block_dupe),
-                ];
-
-                if let Err(_) = T::Accounting::handle_multiposting_amounts(forward_keys, reversal_keys) {
+                if let Err(_) = T::Accounting::handle_multiposting_amounts(keys) {
                     fail!(Error::<T>::ErrorInAccounting3);
                 }
 

@@ -33,22 +33,65 @@
 // You should have received a copy of the GNU General Public License
 // along with Totem.  If not, see <http://www.gnu.org/licenses/>.
 
-use frame_support::pallet_prelude::*;
+use frame_support::{dispatch::EncodeLike, pallet_prelude::*};
 use sp_runtime::traits::Member;
 use sp_std::prelude::*;
 
 pub mod accounting {
     use super::*;
 
-    pub struct PostingKey<AccountId, Hash, BlockNumber, Account, LedgerBalance, PostingIndex> {
-        o: AccountId,
-        a: Account,
-        c: LedgerBalance,
-        d: bool,
-        h: Hash,
-        b: BlockNumber,
-        t: BlockNumber,
-        index: PostingIndex,
+    #[repr(u8)]
+    #[derive(Decode, Encode, Clone, Copy)]
+    pub enum Indicator {
+        Debit = 0,
+        Credit = 1,
+    }
+    impl EncodeLike<Indicator> for bool {}
+    impl Indicator {
+        pub fn reverse(self) -> Self {
+            match self {
+                Self::Debit => Self::Credit,
+                Self::Credit => Self::Debit,
+            }
+        }
+    }
+
+    #[derive(Clone)]
+    pub struct Record<AccountId, Hash, BlockNumber, Account, LedgerBalance> {
+        pub primary_party: AccountId,
+        pub counterparty: AccountId,
+        pub ledger_account: Account,
+        pub amount: LedgerBalance,
+        pub debit_credit: Indicator,
+        pub reference_hash: Hash,
+        pub changed_on_blocknumber: BlockNumber,
+        pub applicable_period_blocknumber: BlockNumber,
+    }
+
+    impl<AccountId, Hash, BlockNumber, Account, LedgerBalance>
+        Record<AccountId, Hash, BlockNumber, Account, LedgerBalance>
+    {
+        pub fn new(
+            primary_party: AccountId,
+            counterparty: AccountId,
+            ledger_account: Account,
+            amount: LedgerBalance,
+            debit_credit: Indicator,
+            reference_hash: Hash,
+            changed_on_blocknumber: BlockNumber,
+            applicable_period_blocknumber: BlockNumber,
+        ) -> Self {
+            Record {
+                primary_party,
+                counterparty,
+                ledger_account,
+                amount,
+                debit_credit,
+                reference_hash,
+                changed_on_blocknumber,
+                applicable_period_blocknumber,
+            }
+        }
     }
 
     /// Main Totem accounting trait.
@@ -58,8 +101,7 @@ pub mod accounting {
         type LedgerBalance: Member + Copy + Into<i128> + Encode + Decode + Eq;
 
         fn handle_multiposting_amounts(
-            fwd: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-            rev: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
+            keys: Vec<Record<AccountId, Hash, BlockNumber, Self::Account, Self::LedgerBalance>>,
         ) -> DispatchResultWithPostInfo;
 
         fn account_for_fees(f: CoinAmount, p: AccountId) -> DispatchResultWithPostInfo;
