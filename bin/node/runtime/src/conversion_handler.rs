@@ -85,13 +85,3 @@ impl Convert<Hash, Hash> for ConversionHandler {
         x
     }
 }
-
-impl Convert<bool, pallet_prefunding::LockStatus> for ConversionHandler {
-    fn convert(x: bool) -> pallet_prefunding::LockStatus {
-        if x {
-            pallet_prefunding::LockStatus::Locked
-        } else {
-            pallet_prefunding::LockStatus::Unlocked
-        }
-    }
-}

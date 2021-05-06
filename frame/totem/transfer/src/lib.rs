@@ -18,7 +18,9 @@
 
 // Copyright 2020 Chris D'Costa
 // This file is part of Totem Live Accounting.
-// Author Chris D'Costa email: chris.dcosta@totemaccounting.com
+// Authors:
+// - Félix Daudré-Vignier   email: felix@totemaccounting.com
+// - Chris D'Costa          email: chris.dcosta@totemaccounting.com
 
 // Totem is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -54,7 +56,6 @@ mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use sp_runtime::traits::Convert;
-    use sp_std::prelude::*;
     use totem_common::traits::bonsai::Storing;
 
     // Other trait types
@@ -85,7 +86,7 @@ mod pallet {
             tx_uid: T::Hash,
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
-            T::Bonsai::start_tx(tx_uid.clone())?;
+            T::Bonsai::start_tx(tx_uid)?;
             // Convert incoming amount to currency for transfer
             let amount: CurrencyBalanceOf<T> = T::TransferConversions::convert(payment_amount);
 

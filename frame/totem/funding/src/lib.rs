@@ -18,7 +18,9 @@
 
 // Copyright 2020 Chris D'Costa
 // This file is part of Totem Live Accounting.
-// Author Chris D'Costa email: chris.dcosta@totemaccounting.com
+// Authors:
+// - Félix Daudré-Vignier   email: felix@totemaccounting.com
+// - Chris D'Costa          email: chris.dcosta@totemaccounting.com
 
 // Totem is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -44,57 +46,50 @@ mod pallet {
 
     use frame_support::{fail, pallet_prelude::*};
     use frame_system::pallet_prelude::*;
-    use sp_std::prelude::*;
-    use totem_common::set::Set;
-
-    #[derive(PartialEq, Eq, Clone, Encode, Decode, Default)]
-    #[cfg_attr(feature = "std", derive(Debug))]
-    pub struct TXKeysT<Hash> {
-        pub tx_uid: Hash,
-    }
+    use totem_common::types::Set;
 
     #[pallet::pallet]
     #[pallet::generate_store(trait Store)]
     pub struct Pallet<T>(_);
 
+    /// Defines if the transfer mechanism is open yet.
     #[pallet::storage]
     #[pallet::getter(fn transfer_status)]
-    /// Defines if the transfer mechanism is open yet
     pub type TransferStatus<T: Config> = StorageValue<_, bool, ValueQuery>;
 
+    /// The Maximum Quantity of Coins that can be minted.
     #[pallet::storage]
     #[pallet::getter(fn max_issuance)]
-    /// The Maximum Quantity of Coins that can be minted
     pub type MaxlIssuance<T: Config> = StorageValue<_, u128, ValueQuery>;
 
+    /// Initially 45% of Supply (Reserved Funds).
     #[pallet::storage]
     #[pallet::getter(fn unissued)]
-    /// Initially 45% of Supply (Reserved Funds).
     pub type UnIssued<T: Config> = StorageValue<_, u128, ValueQuery>;
 
+    /// Initially 55% of Supply Reduces as funds distributed.
     #[pallet::storage]
     #[pallet::getter(fn issued)]
-    /// Initially 55% of Supply Reduces as funds distributed.
     pub type Issued<T: Config> = StorageValue<_, u128, ValueQuery>;
 
+    /// Controller of funds (Live Accounting Association Account).
     #[pallet::storage]
     #[pallet::getter(fn controller)]
-    /// Controller of funds (Live Accounting Association Account)
     pub type Controller<T: Config> = StorageValue<_, T::AccountId>;
 
+    /// The number of coins distributed. It should equal the sum in AccountIdBalances.
     #[pallet::storage]
     #[pallet::getter(fn total_distributed)]
-    /// The number of coins distributed. It should equal the sum in AccountIdBalances.
     pub type TotalDistributed<T: Config> = StorageValue<_, u128, ValueQuery>;
 
+    /// Place to store investors accountids with balances.
     #[pallet::storage]
     #[pallet::getter(fn account_id_balances)]
-    /// Place to store investors accountids with balances
     pub type AccountIdBalances<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u128>;
 
+    /// List of account Ids who have tokens (updated when token value is 0).
     #[pallet::storage]
     #[pallet::getter(fn holders_account_ids)]
-    /// List of account Ids who have tokens (updated when token value is 0)
     pub type HoldersAccountIds<T: Config> = StorageValue<_, Set<T::AccountId>, ValueQuery>;
 
     #[pallet::config]
@@ -172,7 +167,7 @@ mod pallet {
             Ok(().into())
         }
 
-        /// Super User can only mint coins if transfers are disabled
+        /// Super User can only mint coins if transfers are disabled.
         #[pallet::weight(0/*TODO*/)]
         fn mint_coins(origin: OriginFor<T>, quantity: u128) -> DispatchResultWithPostInfo {
             let _who = ensure_root(origin)?;
@@ -192,7 +187,7 @@ mod pallet {
             Ok(().into())
         }
 
-        /// Super User can move from unissued to issued coins if transfers are disabled
+        /// Super User can move from unissued to issued coins if transfers are disabled.
         #[pallet::weight(0/*TODO*/)]
         fn rebalance_issued_coins(origin: OriginFor<T>, amount: u128) -> DispatchResultWithPostInfo {
             let _who = ensure_root(origin)?;
@@ -321,8 +316,7 @@ mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        #[allow(dead_code)]
-        // check if all the setup actions have been done
+        /// Checks if all the setup actions have been done.
         fn check_setup() -> bool {
             Controller::<T>::exists()
         }
