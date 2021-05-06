@@ -18,7 +18,9 @@
 
 // Copyright 2020 Chris D'Costa
 // This file is part of Totem Live Accounting.
-// Author Chris D'Costa email: chris.dcosta@totemaccounting.com
+// Authors:
+// - Félix Daudré-Vignier   email: felix@totemaccounting.com
+// - Chris D'Costa          email: chris.dcosta@totemaccounting.com
 
 // Totem is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,13 +35,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Totem.  If not, see <http://www.gnu.org/licenses/>.
 
-//! A collection based on `Vec` that guarantees that every member is unique.
-
-use codec::{Decode, Encode};
-use sp_std::prelude::*;
-
-#[derive(Decode, Encode)]
-pub struct Set<T>(Vec<T>);
+use super::{accounting::*, orders::*, prefunding::*, *};
 
 impl<T> Default for Set<T> {
     fn default() -> Self {
@@ -64,3 +60,52 @@ where
         self.0.retain(|x| x != elem)
     }
 }
+
+impl EncodeLike<Indicator> for bool {}
+
+impl Indicator {
+    pub fn reverse(self) -> Self {
+        match self {
+            Self::Debit => Self::Credit,
+            Self::Credit => Self::Debit,
+        }
+    }
+}
+
+impl EncodeLike<RecordType> for u8 {}
+
+impl<AccountId, Hash, BlockNumber, Account, LedgerBalance>
+    Record<AccountId, Hash, BlockNumber, Account, LedgerBalance>
+{
+    pub fn new(
+        primary_party: AccountId,
+        counterparty: AccountId,
+        ledger_account: Account,
+        amount: LedgerBalance,
+        debit_credit: Indicator,
+        reference_hash: Hash,
+        changed_on_blocknumber: BlockNumber,
+        applicable_period_blocknumber: BlockNumber,
+    ) -> Self {
+        Record {
+            primary_party,
+            counterparty,
+            ledger_account,
+            amount,
+            debit_credit,
+            reference_hash,
+            changed_on_blocknumber,
+            applicable_period_blocknumber,
+        }
+    }
+}
+
+impl EncodeLike<ApprovalStatus> for u8 {}
+
+impl Default for ApprovalStatus {
+    fn default() -> Self {
+        ApprovalStatus::Submitted
+    }
+}
+
+impl EncodeLike<LockStatus> for bool {}

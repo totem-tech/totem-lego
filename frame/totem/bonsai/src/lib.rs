@@ -18,7 +18,9 @@
 
 // Copyright 2020 Chris D'Costa
 // This file is part of Totem Live Accounting.
-// Author Chris D'Costa email: chris.dcosta@totemaccounting.com
+// Authors:
+// - Félix Daudré-Vignier   email: felix@totemaccounting.com
+// - Chris D'Costa          email: chris.dcosta@totemaccounting.com
 
 // Totem is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -70,55 +72,54 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{fail, pallet_prelude::*};
-use frame_system::pallet_prelude::*;
-
-use sp_primitives::H256;
-use sp_runtime::traits::{Convert, Hash};
-use sp_std::prelude::*;
-
-use totem_common::record_type::RecordType;
-use totem_common::traits::{
-    bonsai::Storing, orders::Validating as OrderValidating, teams::Validating as TeamsValidating,
-    timekeeping::Validating as TimeValidating,
-};
-use totem_common::{ok, StorageMapExt};
+pub use pallet::*;
 
 #[frame_support::pallet]
-pub mod pallet {
+mod pallet {
 
-    use super::*;
+    use frame_support::{fail, pallet_prelude::*};
+    use frame_system::pallet_prelude::*;
+
+    use sp_primitives::H256;
+    use sp_runtime::traits::{Convert, Hash};
+    use sp_std::prelude::*;
+
+    use totem_common::traits::{
+        bonsai::Storing, orders::Validating as OrderValidating, teams::Validating as TeamsValidating,
+        timekeeping::Validating as TimeValidating,
+    };
+    use totem_common::types::RecordType;
+    use totem_common::StorageMapExt;
 
     #[pallet::pallet]
     #[pallet::generate_store(trait Store)]
     pub struct Pallet<T>(_);
 
+    /// Bonsai Storage.
     #[pallet::storage]
     #[pallet::getter(fn is_valid_record)]
-    /// Bonsai Storage
     pub type IsValidRecord<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, T::Hash>;
 
     /* Hacky workaround for inability of RPC to query transaction by hash */
 
+    /// Maps to current block number allows interrogation of errors.
     #[pallet::storage]
     #[pallet::getter(fn is_started)]
-    /// Maps to current block number allows interrogation of errors.
     pub type IsStarted<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, T::BlockNumber>;
 
+    /// Future block number beyond which the Hash should deleted.
     #[pallet::storage]
     #[pallet::getter(fn is_successful)]
-    /// Future block number beyond which the Hash should deleted.
     pub type IsSuccessful<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, T::BlockNumber>;
 
+    /// Tracking to ensure that we can perform housekeeping on finalization of block.
     #[pallet::storage]
     #[pallet::getter(fn tx_list)]
-    /// Tracking to ensure that we can perform housekeeping on finalization of block.
     pub type TxList<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, Vec<T::Hash>>;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-        // type Orders: OrderValidating<Self::AccountId,Self::Hash>;
         type Timekeeping: TimeValidating<Self::AccountId, Self::Hash>;
         type Projects: TeamsValidating<Self::AccountId, Self::Hash>;
         type Orders: OrderValidating<Self::AccountId, Self::Hash>;
@@ -132,7 +133,7 @@ pub mod pallet {
     pub enum Error<T> {
         /// Queued transaction already completed.
         TransactionCompleted,
-        // Someone is attempting to use this TX_UID after a transaction failed.
+        /// Someone is attempting to use this TX_UID after a transaction failed.
         TransactionIdInUse,
     }
 
@@ -157,10 +158,10 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             // check transaction signed
             let who = ensure_signed(origin)?;
-            Self::check_remote_ownership(who.clone(), key.clone(), bonsai_token.clone(), record_type.clone())?;
-            Self::insert_record(key.clone(), bonsai_token.clone())?;
+            Self::check_remote_ownership(who, key.clone(), bonsai_token.clone(), record_type)?;
+            Self::insert_record(key, bonsai_token)?;
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -173,146 +174,135 @@ pub mod pallet {
             let list_key: T::Hash = T::Hashing::hash(default_bytes.encode().as_slice());
             if let Some(hashes) = Self::tx_list(&list_key) {
                 // check which storage the hashes come from and hashes that are old
-                for i in hashes {
-                    let key: T::Hash = i.clone();
+                for key in hashes {
                     match Self::is_started(&key) {
                         Some(block) => {
-                            let mut target_block =
-                                <T::BonsaiConversions as Convert<T::BlockNumber, u32>>::convert(block);
-                            target_block = target_block + 172800_u32;
+                            let target_block = T::BonsaiConversions::convert(block) + 172800_u32;
                             // let mut target_deletion_block: T::BlockNumber = <T::BonsaiConversions as Convert<u32, T::BlockNumber>>::convert(target_block);
                             // cleanup 30 Days from when the transaction started, but did not complete
                             // It's possible this comparison is not working
                             if current >= target_block {
-                                IsStarted::<T>::remove(key.clone());
+                                IsStarted::<T>::remove(key);
                             }
                         }
                         None => {
                             if let Some(block) = Self::is_successful(&key) {
-                                let target_block =
-                                    <T::BonsaiConversions as Convert<T::BlockNumber, u32>>::convert(block);
+                                let target_block = T::BonsaiConversions::convert(block);
                                 if current >= target_block {
-                                    IsSuccessful::<T>::remove(key.clone());
+                                    IsSuccessful::<T>::remove(key);
                                 }
                             }
                         }
                     }
-                    TxList::<T>::mutate_(&list_key, |tx_list| tx_list.retain(|v| v != &key));
+                    TxList::<T>::mutate_or_err(&list_key, |tx_list| tx_list.retain(|v| v != &key))?;
                 }
             }
 
-            ok()
+            Ok(().into())
         }
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        //TODO
         /// You are not the owner of this Record.
         ErrorRecordOwner(T::Hash),
         /// This is an unknown record type.
         ErrorUnknownType(T::Hash),
     }
-}
 
-impl<T: Config> Pallet<T> {
-    fn check_remote_ownership(o: T::AccountId, k: T::Hash, t: T::Hash, e: RecordType) -> DispatchResultWithPostInfo {
-        // check which type of record
-        // then check that the supplied hash is owned by the signer of the transaction
-        match e {
-            RecordType::Teams => {
-                if let false = <<T as Config>::Projects as TeamsValidating<T::AccountId, T::Hash>>::is_project_owner(
-                    o.clone(),
-                    k.clone(),
-                ) {
-                    Self::deposit_event(Event::ErrorRecordOwner(t));
-                    fail!("You cannot add a record you do not own");
+    impl<T: Config> Pallet<T> {
+        fn check_remote_ownership(
+            o: T::AccountId,
+            k: T::Hash,
+            t: T::Hash,
+            e: RecordType,
+        ) -> DispatchResultWithPostInfo {
+            // check which type of record
+            // then check that the supplied hash is owned by the signer of the transaction
+            match e {
+                RecordType::Teams => {
+                    if false == T::Projects::is_project_owner(o, k) {
+                        Self::deposit_event(Event::ErrorRecordOwner(t));
+                        fail!("You cannot add a record you do not own");
+                    }
+                }
+                RecordType::Timekeeping => {
+                    if false == T::Timekeeping::is_time_record_owner(o, k) {
+                        Self::deposit_event(Event::ErrorRecordOwner(t));
+                        fail!("You cannot add a record you do not own");
+                    }
+                }
+                RecordType::Orders => {
+                    if false == T::Orders::is_order_party(o, k) {
+                        Self::deposit_event(Event::ErrorRecordOwner(t));
+                        fail!("You cannot add a record you do not own");
+                    }
                 }
             }
-            RecordType::Timekeeping => {
-                if let false =
-                    <<T as Config>::Timekeeping as TimeValidating<T::AccountId, T::Hash>>::is_time_record_owner(
-                        o.clone(),
-                        k.clone(),
-                    )
-                {
-                    Self::deposit_event(Event::ErrorRecordOwner(t));
-                    fail!("You cannot add a record you do not own");
-                }
+
+            Ok(().into())
+        }
+
+        fn insert_record(k: T::Hash, t: T::Hash) -> DispatchResultWithPostInfo {
+            // TODO implement fee payment mechanism (currently just transaction fee)
+            IsValidRecord::<T>::insert(k, t);
+
+            Ok(().into())
+        }
+
+        fn start_uuid(u: T::Hash) -> DispatchResultWithPostInfo {
+            if IsSuccessful::<T>::contains_key(&u) {
+                // Throw an error because the transaction already completed.
+                fail!(Error::<T>::TransactionCompleted);
+            } else if IsStarted::<T>::contains_key(&u) {
+                // Apparently someone is attempting to use this TX_UID after a transaction failed.
+                fail!(Error::<T>::TransactionIdInUse);
+            } else {
+                // this is a new UUID just starting the transaction
+                let current_block = frame_system::Pallet::<T>::block_number();
+                let default_bytes = b"nobody can save fiat currency now";
+                let list_key: T::Hash = T::Hashing::hash(default_bytes.encode().as_slice());
+                TxList::<T>::mutate_or_err(list_key, |tx_list| tx_list.push(u))?;
+                IsStarted::<T>::insert(u, current_block);
             }
-            RecordType::Orders => {
-                if let false = <<T as Config>::Orders as OrderValidating<T::AccountId, T::Hash>>::is_order_party(
-                    o.clone(),
-                    k.clone(),
-                ) {
-                    Self::deposit_event(Event::ErrorRecordOwner(t));
-                    fail!("You cannot add a record you do not own");
-                }
+
+            Ok(().into())
+        }
+
+        fn end_uuid(u: T::Hash) -> DispatchResultWithPostInfo {
+            if IsSuccessful::<T>::contains_key(&u) {
+                // Throw an error because the transaction already completed
+                fail!(Error::<T>::TransactionCompleted);
+            } else if IsStarted::<T>::contains_key(&u) {
+                // The transaction is now completed successfully update the state change
+                // remove from started, and place in successful
+                let current_block = frame_system::Pallet::<T>::block_number();
+                let block: u32 = T::BonsaiConversions::convert(current_block);
+                let block = block + 172800_u32; // cleanup in 30 Days
+                let deletion_block: T::BlockNumber = T::BonsaiConversions::convert(block);
+                IsStarted::<T>::remove(&u);
+                IsSuccessful::<T>::insert(u, deletion_block);
+            } else {
+                // This situation should not exist.
+                fail!(Error::<T>::TransactionCompleted);
             }
+
+            Ok(().into())
         }
-        ok()
     }
 
-    fn insert_record(k: T::Hash, t: T::Hash) -> DispatchResultWithPostInfo {
-        // TODO implement fee payment mechanism (currently just transaction fee)
-        IsValidRecord::<T>::insert(k, t);
-        ok()
-    }
-
-    fn start_uuid(u: T::Hash) -> DispatchResultWithPostInfo {
-        if IsSuccessful::<T>::contains_key(&u) {
-            // Throw an error because the transaction already completed.
-            fail!(Error::<T>::TransactionCompleted);
-        } else if IsStarted::<T>::contains_key(&u) {
-            // Apparently someone is attempting to use this TX_UID after a transaction failed.
-            fail!(Error::<T>::TransactionIdInUse);
-        } else {
-            // this is a new UUID just starting the transaction
-            let current_block = frame_system::Pallet::<T>::block_number();
-            let default_bytes = b"nobody can save fiat currency now";
-            let list_key: T::Hash = T::Hashing::hash(default_bytes.encode().as_slice());
-            TxList::<T>::mutate_(list_key, |tx_list| tx_list.push(u));
-            IsStarted::<T>::insert(u, current_block);
+    impl<T: Config> Storing<T::Hash> for Pallet<T> {
+        fn claim_data(r: T::Hash, d: T::Hash) -> DispatchResultWithPostInfo {
+            Self::insert_record(r, d)
         }
 
-        ok()
-    }
-
-    fn end_uuid(u: T::Hash) -> DispatchResultWithPostInfo {
-        if IsSuccessful::<T>::contains_key(&u) {
-            // Throw an error because the transaction already completed
-            fail!(Error::<T>::TransactionCompleted);
-        } else if IsStarted::<T>::contains_key(&u) {
-            // The transaction is now completed successfully update the state change
-            // remove from started, and place in successful
-            let current_block = frame_system::Pallet::<T>::block_number();
-            let block: u32 = T::BonsaiConversions::convert(current_block);
-            let block = block + 172800u32; // cleanup in 30 Days
-            let deletion_block: T::BlockNumber = T::BonsaiConversions::convert(block);
-            IsStarted::<T>::remove(&u);
-            IsSuccessful::<T>::insert(u, deletion_block);
-        } else {
-            // This situation should not exist.
-            fail!(Error::<T>::TransactionCompleted);
+        fn start_tx(u: T::Hash) -> DispatchResultWithPostInfo {
+            Self::start_uuid(u)
         }
 
-        ok()
-    }
-}
-
-pub use pallet::*;
-
-impl<T: Config> Storing<T::Hash> for Pallet<T> {
-    fn claim_data(r: T::Hash, d: T::Hash) -> DispatchResultWithPostInfo {
-        Self::insert_record(r, d)
-    }
-
-    fn start_tx(u: T::Hash) -> DispatchResultWithPostInfo {
-        Self::start_uuid(u)
-    }
-
-    fn end_tx(u: T::Hash) -> DispatchResultWithPostInfo {
-        Self::end_uuid(u)
+        fn end_tx(u: T::Hash) -> DispatchResultWithPostInfo {
+            Self::end_uuid(u)
+        }
     }
 }

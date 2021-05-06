@@ -21,7 +21,7 @@
 use crate::keyring::*;
 use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 use node_runtime::{
-	GenesisConfig, BalancesConfig, SessionConfig, StakingConfig, SystemConfig,
+	GenesisConfig, BalancesConfig, SessionConfig, StakingConfig, SystemConfig, FundingConfig,
 	GrandpaConfig, IndicesConfig, ContractsConfig, SocietyConfig, wasm_binary_unwrap,
 	AccountId, StakerStatus, BabeConfig, BABE_GENESIS_EPOCH_CONFIG,
 };
@@ -63,6 +63,7 @@ pub fn config_endowed(
 			}) } else { None },
 			code: code.map(|x| x.to_vec()).unwrap_or_else(|| wasm_binary_unwrap().to_vec()),
 		},
+		pallet_funding: FundingConfig::default(),
 		pallet_indices: IndicesConfig {
 			indices: vec![],
 		},

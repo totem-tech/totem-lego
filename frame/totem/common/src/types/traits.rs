@@ -18,7 +18,9 @@
 
 // Copyright 2020 Chris D'Costa
 // This file is part of Totem Live Accounting.
-// Author Chris D'Costa email: chris.dcosta@totemaccounting.com
+// Authors:
+// - Félix Daudré-Vignier   email: felix@totemaccounting.com
+// - Chris D'Costa          email: chris.dcosta@totemaccounting.com
 
 // Totem is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,66 +35,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Totem.  If not, see <http://www.gnu.org/licenses/>.
 
-use frame_support::{dispatch::EncodeLike, pallet_prelude::*};
+use frame_support::pallet_prelude::*;
 use sp_runtime::traits::Member;
 use sp_std::prelude::*;
 
 pub mod accounting {
     use super::*;
-
-    #[repr(u8)]
-    #[derive(Decode, Encode, Clone, Copy)]
-    pub enum Indicator {
-        Debit = 0,
-        Credit = 1,
-    }
-    impl EncodeLike<Indicator> for bool {}
-    impl Indicator {
-        pub fn reverse(self) -> Self {
-            match self {
-                Self::Debit => Self::Credit,
-                Self::Credit => Self::Debit,
-            }
-        }
-    }
-
-    #[derive(Clone)]
-    pub struct Record<AccountId, Hash, BlockNumber, Account, LedgerBalance> {
-        pub primary_party: AccountId,
-        pub counterparty: AccountId,
-        pub ledger_account: Account,
-        pub amount: LedgerBalance,
-        pub debit_credit: Indicator,
-        pub reference_hash: Hash,
-        pub changed_on_blocknumber: BlockNumber,
-        pub applicable_period_blocknumber: BlockNumber,
-    }
-
-    impl<AccountId, Hash, BlockNumber, Account, LedgerBalance>
-        Record<AccountId, Hash, BlockNumber, Account, LedgerBalance>
-    {
-        pub fn new(
-            primary_party: AccountId,
-            counterparty: AccountId,
-            ledger_account: Account,
-            amount: LedgerBalance,
-            debit_credit: Indicator,
-            reference_hash: Hash,
-            changed_on_blocknumber: BlockNumber,
-            applicable_period_blocknumber: BlockNumber,
-        ) -> Self {
-            Record {
-                primary_party,
-                counterparty,
-                ledger_account,
-                amount,
-                debit_credit,
-                reference_hash,
-                changed_on_blocknumber,
-                applicable_period_blocknumber,
-            }
-        }
-    }
+    use crate::types::accounting::Record;
 
     /// Main Totem accounting trait.
     pub trait Posting<AccountId, Hash, BlockNumber, CoinAmount> {
@@ -126,10 +75,9 @@ pub mod bonsai {
 
 pub mod prefunding {
     use super::*;
+    use crate::types::prefunding::LockStatus;
 
     pub trait Encumbrance<AccountId, Hash, BlockNumber> {
-        type LockStatus: Member + Copy;
-
         fn prefunding_for(
             who: AccountId,
             recipient: AccountId,
@@ -143,7 +91,7 @@ pub mod prefunding {
 
         fn settle_prefunded_invoice(o: AccountId, h: Hash, uid: Hash) -> DispatchResultWithPostInfo;
 
-        fn set_release_state(o: AccountId, o_lock: Self::LockStatus, h: Hash, uid: Hash) -> DispatchResultWithPostInfo;
+        fn set_release_state(o: AccountId, o_lock: LockStatus, h: Hash, uid: Hash) -> DispatchResultWithPostInfo;
 
         fn unlock_funds_for_owner(o: AccountId, h: Hash, uid: Hash) -> DispatchResultWithPostInfo;
 
@@ -163,9 +111,9 @@ pub mod teams {
     pub trait Validating<AccountId, Hash> {
         fn is_project_owner(o: AccountId, h: Hash) -> bool;
 
-        fn is_owner_and_project_valid(o: AccountId, h: Hash) -> bool;
-
         fn is_project_valid(h: Hash) -> bool;
+
+        fn is_owner_and_project_valid(o: AccountId, h: Hash) -> bool;
     }
 }
 

@@ -1,12 +1,53 @@
+//                              Næ§@@@ÑÉ©
+//                        æ@@@@@@@@@@@@@@@@@@
+//                    Ñ@@@@?.?@@@@@@@@@@@@@@@@@@@N
+//                 ¶@@@@@?^%@@.=@@@@@@@@@@@@@@@@@@@@
+//               N@@@@@@@?^@@@»^@@@@@@@@@@@@@@@@@@@@@@
+//               @@@@@@@@?^@@@».............?@@@@@@@@@É
+//              Ñ@@@@@@@@?^@@@@@@@@@@@@@@@@@@'?@@@@@@@@Ñ
+//              @@@@@@@@@?^@@@»..............»@@@@@@@@@@
+//              @@@@@@@@@?^@@@»^@@@@@@@@@@@@@@@@@@@@@@@@
+//              @@@@@@@@@?^ë@@&.@@@@@@@@@@@@@@@@@@@@@@@@
+//               @@@@@@@@?^´@@@o.%@@@@@@@@@@@@@@@@@@@@©
+//                @@@@@@@?.´@@@@@ë.........*.±@@@@@@@æ
+//                 @@@@@@@@?´.I@@@@@@@@@@@@@@.&@@@@@N
+//                  N@@@@@@@@@@ë.*=????????=?@@@@@Ñ
+//                    @@@@@@@@@@@@@@@@@@@@@@@@@@@¶
+//                        É@@@@@@@@@@@@@@@@Ñ¶
+//                             Næ§@@@ÑÉ©
+
+// Copyright 2020 Chris D'Costa
+// This file is part of Totem Live Accounting.
+// Authors:
+// - Félix Daudré-Vignier   email: felix@totemaccounting.com
+// - Chris D'Costa          email: chris.dcosta@totemaccounting.com
+
+// Totem is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Totem is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Totem.  If not, see <http://www.gnu.org/licenses/>.
+
 #![cfg(test)]
 
 use crate as pallet_orders;
 
 use frame_support::{
-	parameter_types, ord_parameter_types, traits::{OnInitialize, OnFinalize, GenesisBuild},
+	ord_parameter_types, parameter_types,
+	traits::{GenesisBuild, OnFinalize, OnInitialize},
 };
 use sp_core::H256;
-use sp_runtime::{traits::{BlakeTwo256, IdentityLookup}, testing::Header};
+use sp_runtime::{
+	testing::Header,
+	traits::{BlakeTwo256, IdentityLookup},
+};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -93,9 +134,11 @@ impl pallet_orders::Config for Test {
 // our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	pallet_balances::GenesisConfig::<Test>{
+	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![(1, 100), (2, 100), (3, 100), (4, 100)],
-	}.assimilate_storage(&mut t).unwrap();
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
 	GenesisBuild::<Test>::assimilate_storage(&crate::GenesisConfig, &mut t).unwrap();
 	t.into()
 }

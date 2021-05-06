@@ -18,7 +18,9 @@
 
 // Copyright 2020 Chris D'Costa
 // This file is part of Totem Live Accounting.
-// Author Chris D'Costa email: chris.dcosta@totemaccounting.com
+// Authors:
+// - Félix Daudré-Vignier   email: felix@totemaccounting.com
+// - Chris D'Costa          email: chris.dcosta@totemaccounting.com
 
 // Totem is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,16 +42,15 @@ use frame_system::pallet_prelude::*;
 
 use sp_std::prelude::*;
 
-use totem_common::ok;
-use totem_common::record_type::RecordType;
 use totem_common::traits::timekeeping::Validating as TimeValidating;
+use totem_common::types::RecordType;
 
 type Archival = bool;
 
 pub use pallet::*;
 
 #[frame_support::pallet]
-pub mod pallet {
+mod pallet {
 
     use super::*;
 
@@ -102,7 +103,7 @@ pub mod pallet {
                 _ => fail!("Unknown or unimplemented record type. Cannot archive record"),
             }
 
-            ok()
+            Ok(().into())
         }
     }
 

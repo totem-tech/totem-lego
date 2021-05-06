@@ -18,7 +18,9 @@
 
 // Copyright 2020 Chris D'Costa
 // This file is part of Totem Live Accounting.
-// Author Chris D'Costa email: chris.dcosta@totemaccounting.com
+// Authors:
+// - Félix Daudré-Vignier   email: felix@totemaccounting.com
+// - Chris D'Costa          email: chris.dcosta@totemaccounting.com
 
 // Totem is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -63,53 +65,43 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{fail, pallet_prelude::*};
-use frame_system::pallet_prelude::*;
-
-use sp_std::prelude::*;
-
-use totem_common::traits::teams::Validating;
-use totem_common::{ok, StorageMapExt};
-
-/// Reference supplied externally.
-//TODO make an enum (Cf bottom page)
-pub type ProjectStatus = u16;
-
-#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode)]
-pub struct DeletedProject<AccountId, ProjectStatus> {
-    pub owned_by: AccountId,
-    pub deleted_by: AccountId,
-    pub status: ProjectStatus,
-}
+pub use pallet::*;
 
 #[frame_support::pallet]
 mod pallet {
 
-    use super::*;
+    use frame_support::{fail, pallet_prelude::*};
+    use frame_system::pallet_prelude::*;
+
+    use sp_std::prelude::*;
+
+    use totem_common::traits::teams::Validating;
+    use totem_common::types::teams::*;
+    use totem_common::StorageMapExt;
 
     #[pallet::pallet]
     #[pallet::generate_store(trait Store)]
     pub struct Pallet<T>(_);
 
+    /// Status of the project.
     #[pallet::storage]
     #[pallet::getter(fn project_hash_status)]
-    /// Status of the project.
     pub type ProjectHashStatus<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, ProjectStatus>;
 
+    /// List of deleted projects.
     #[pallet::storage]
     #[pallet::getter(fn deleted_project)]
-    /// List of deleted projects.
     pub type DeletedProjects<T: Config> =
         StorageMap<_, Blake2_128Concat, T::Hash, Vec<DeletedProject<T::AccountId, ProjectStatus>>>;
 
+    /// Owner of the project.
     #[pallet::storage]
     #[pallet::getter(fn project_hash_owner)]
-    /// Owner of the project.
     pub type ProjectHashOwner<T: Config> = StorageMap<_, Blake2_128Concat, T::Hash, T::AccountId>;
 
+    /// List of owned projects.
     #[pallet::storage]
     #[pallet::getter(fn owner_projects_list)]
-    /// List of owned projects.
     pub type OwnerProjectsList<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Vec<T::Hash>>;
 
     #[pallet::config]
@@ -153,32 +145,32 @@ mod pallet {
         #[pallet::weight(0/*TODO*/)]
         fn add_new_project(origin: OriginFor<T>, project_hash: T::Hash) -> DispatchResultWithPostInfo {
             // Check that the project does not exist
-            ensure!(!ProjectHashStatus::<T>::contains_key(project_hash.clone()), Error::<T>::ProjectAlreadyExists);
+            ensure!(!ProjectHashStatus::<T>::contains_key(project_hash), Error::<T>::ProjectAlreadyExists);
 
             // Check that the project was not deleted already
-            ensure!(!DeletedProjects::<T>::contains_key(project_hash.clone()), Error::<T>::ProjectAlreadyDeleted);
+            ensure!(!DeletedProjects::<T>::contains_key(project_hash), Error::<T>::ProjectAlreadyDeleted);
 
             // proceed to store project
             let who = ensure_signed(origin)?;
             let project_status: ProjectStatus = 0;
 
             // TODO limit nr of Projects per Account.
-            ProjectHashStatus::<T>::insert(project_hash.clone(), &project_status);
-            ProjectHashOwner::<T>::insert(project_hash.clone(), &who);
-            OwnerProjectsList::<T>::mutate_(&who, |owner_projects_list| owner_projects_list.push(project_hash.clone()));
+            ProjectHashStatus::<T>::insert(project_hash, &project_status);
+            ProjectHashOwner::<T>::insert(project_hash, &who);
+            OwnerProjectsList::<T>::mutate_or_err(&who, |owner_projects_list| owner_projects_list.push(project_hash))?;
 
             Self::deposit_event(Event::ProjectRegistered(project_hash, who));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
         fn remove_project(origin: OriginFor<T>, project_hash: T::Hash) -> DispatchResultWithPostInfo {
-            ensure!(ProjectHashStatus::<T>::contains_key(project_hash.clone()), Error::<T>::ProjectDoesNotExist);
+            ensure!(ProjectHashStatus::<T>::contains_key(project_hash), Error::<T>::ProjectDoesNotExist);
 
             // get project by hash
             let project_owner: T::AccountId =
-                Self::project_hash_owner(project_hash.clone()).ok_or(Error::<T>::ProjectCannotFetchOwner)?;
+                Self::project_hash_owner(project_hash).ok_or(Error::<T>::ProjectCannotFetchOwner)?;
 
             // check transaction is signed.
             let changer: T::AccountId = ensure_signed(origin)?;
@@ -196,24 +188,24 @@ mod pallet {
             };
 
             // retain all other projects except the one we want to delete
-            OwnerProjectsList::<T>::mutate_(&project_owner, |owner_projects_list| {
+            OwnerProjectsList::<T>::mutate_or_err(&project_owner, |owner_projects_list| {
                 owner_projects_list.retain(|h| h != &project_hash)
-            });
+            })?;
 
             // remove project from owner
-            ProjectHashOwner::<T>::remove(project_hash.clone());
+            ProjectHashOwner::<T>::remove(project_hash);
 
             // remove status record
-            ProjectHashStatus::<T>::remove(project_hash.clone());
+            ProjectHashStatus::<T>::remove(project_hash);
 
             // record the fact of deletion by whom
-            DeletedProjects::<T>::mutate_(project_hash.clone(), |deleted_project| {
+            DeletedProjects::<T>::mutate_or_err(project_hash, |deleted_project| {
                 deleted_project.push(deleted_project_struct)
-            });
+            })?;
 
             Self::deposit_event(Event::ProjectDeleted(project_hash, project_owner, changer, 999));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -222,11 +214,11 @@ mod pallet {
             new_owner: T::AccountId,
             project_hash: T::Hash,
         ) -> DispatchResultWithPostInfo {
-            ensure!(ProjectHashStatus::<T>::contains_key(project_hash.clone()), Error::<T>::ProjectDoesNotExist);
+            ensure!(ProjectHashStatus::<T>::contains_key(project_hash), Error::<T>::ProjectDoesNotExist);
 
             // get project owner from hash
             let project_owner: T::AccountId =
-                Self::project_hash_owner(project_hash.clone()).ok_or(Error::<T>::ProjectCannotFetchOwner)?;
+                Self::project_hash_owner(project_hash).ok_or(Error::<T>::ProjectCannotFetchOwner)?;
 
             let changer: T::AccountId = ensure_signed(origin)?;
             let changed_by: T::AccountId = changer.clone();
@@ -236,44 +228,45 @@ mod pallet {
             ensure!(project_owner == changer, Error::<T>::ProjectCannotReassignNotOwned);
 
             // retain all other projects except the one we want to reassign
-            OwnerProjectsList::<T>::mutate_(&project_owner, |owner_projects_list| {
+            OwnerProjectsList::<T>::mutate_or_err(&project_owner, |owner_projects_list| {
                 owner_projects_list.retain(|h| h != &project_hash)
-            });
+            })?;
 
             // Set new owner for hash
-            ProjectHashOwner::<T>::insert(project_hash.clone(), &new_owner);
-            OwnerProjectsList::<T>::mutate_(&new_owner, |owner_projects_list| owner_projects_list.push(project_hash));
+            ProjectHashOwner::<T>::insert(project_hash, &new_owner);
+            OwnerProjectsList::<T>::mutate_or_err(&new_owner, |owner_projects_list| {
+                owner_projects_list.push(project_hash)
+            })?;
 
             Self::deposit_event(Event::ProjectReassigned(project_hash, new_owner, changed_by));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
         fn close_project(origin: OriginFor<T>, project_hash: T::Hash) -> DispatchResultWithPostInfo {
-            ensure!(ProjectHashStatus::<T>::contains_key(project_hash.clone()), Error::<T>::ProjectDoesNotExist);
+            ensure!(ProjectHashStatus::<T>::contains_key(project_hash), Error::<T>::ProjectDoesNotExist);
 
             let changer = ensure_signed(origin)?;
 
             // get project owner by hash
-            let project_owner =
-                Self::project_hash_owner(project_hash.clone()).ok_or(Error::<T>::ProjectCannotFetchOwner)?;
+            let project_owner = Self::project_hash_owner(project_hash).ok_or(Error::<T>::ProjectCannotFetchOwner)?;
 
             // TODO Implement a sudo for cleaning data in cases where owner is lost
             // Otherwise onlu the owner can change the data
             ensure!(project_owner == changer, Error::<T>::ProjectCannotCloseNotOwned);
             let project_status: ProjectStatus = 500;
-            ProjectHashStatus::<T>::insert(project_hash.clone(), &project_status);
+            ProjectHashStatus::<T>::insert(project_hash, &project_status);
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, project_status));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
         fn reopen_project(origin: OriginFor<T>, project_hash: T::Hash) -> DispatchResultWithPostInfo {
             // Can only reopen a project that is in status "closed"
-            let project_status: ProjectStatus = match Self::project_hash_status(project_hash.clone()) {
+            let project_status: ProjectStatus = match Self::project_hash_status(project_hash) {
                 Some(500) => 100,
                 _ => fail!(Error::<T>::StatusWrong),
                 // None => return Err("Project has no status"),
@@ -283,17 +276,17 @@ mod pallet {
 
             // get project owner by hash
             let project_owner: T::AccountId =
-                Self::project_hash_owner(project_hash.clone()).ok_or(Error::<T>::ProjectCannotFetchOwner)?;
+                Self::project_hash_owner(project_hash).ok_or(Error::<T>::ProjectCannotFetchOwner)?;
 
             // TODO Implement a sudo for cleaning data in cases where owner is lost
             // Otherwise only the owner can change the data
             ensure!(project_owner == changer, Error::<T>::ProjectCannotChangeNotOwned);
 
-            ProjectHashStatus::<T>::insert(project_hash.clone(), &project_status);
+            ProjectHashStatus::<T>::insert(project_hash, &project_status);
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, project_status));
 
-            ok()
+            Ok(().into())
         }
 
         #[pallet::weight(0/*TODO*/)]
@@ -302,20 +295,20 @@ mod pallet {
             project_hash: T::Hash,
             project_status: ProjectStatus,
         ) -> DispatchResultWithPostInfo {
-            ensure!(ProjectHashStatus::<T>::contains_key(project_hash.clone()), Error::<T>::ProjectDoesNotExist);
+            ensure!(ProjectHashStatus::<T>::contains_key(project_hash), Error::<T>::ProjectDoesNotExist);
 
             let changer = ensure_signed(origin)?;
 
             // get project owner by hash
             let project_owner: T::AccountId =
-                Self::project_hash_owner(project_hash.clone()).ok_or(Error::<T>::ProjectCannotFetchOwner)?;
+                Self::project_hash_owner(project_hash).ok_or(Error::<T>::ProjectCannotFetchOwner)?;
 
             // TODO Implement a sudo for cleaning data in cases where owner is lost
             // Otherwise only the owner can change the data
             ensure!(project_owner == changer, Error::<T>::ProjectCannotChangeNotOwned);
 
             let current_project_status =
-                Self::project_hash_status(project_hash.clone()).ok_or(Error::<T>::ProjectCannotFetchStatus)?;
+                Self::project_hash_status(project_hash).ok_or(Error::<T>::ProjectCannotFetchStatus)?;
             // let proposed_project_status: ProjectStatus = project_status.clone();
             let proposed_project_status = project_status.clone();
 
@@ -358,11 +351,11 @@ mod pallet {
 
             let allowed_project_status: ProjectStatus = proposed_project_status.into();
 
-            ProjectHashStatus::<T>::insert(project_hash.clone(), &allowed_project_status);
+            ProjectHashStatus::<T>::insert(project_hash, &allowed_project_status);
 
             Self::deposit_event(Event::ProjectChanged(project_hash, changer, allowed_project_status));
 
-            ok()
+            Ok(().into())
         }
     }
 
@@ -374,60 +367,24 @@ mod pallet {
         ProjectReassigned(T::Hash, T::AccountId, T::AccountId),
         ProjectChanged(T::Hash, T::AccountId, ProjectStatus),
     }
-}
 
-pub use pallet::*;
-
-impl<T: Config> Validating<T::AccountId, T::Hash> for Pallet<T> {
-    fn is_project_owner(o: T::AccountId, h: T::Hash) -> bool {
-        // set default return value
-        let mut valid: bool = false;
-        // check ownership of project
-        match Self::project_hash_owner(h.clone()) {
-            Some(owner) => {
-                if o == owner {
-                    valid = true;
-                } else {
-                    return valid;
-                }
-            }
-            None => return valid,
+    impl<T: Config> Validating<T::AccountId, T::Hash> for Pallet<T> {
+        fn is_project_owner(o: T::AccountId, h: T::Hash) -> bool {
+            Self::project_hash_owner(h).map(|owner| o == owner).unwrap_or(false)
         }
-        return valid;
-    }
 
-    fn is_owner_and_project_valid(o: T::AccountId, h: T::Hash) -> bool {
-        // set default return value
-        let mut valid: bool = false;
-
-        //TODO
-        // check validity of project
-        if let true = Self::is_project_valid(h.clone()) {
-            match Self::project_hash_owner(h.clone()) {
-                Some(owner) => {
-                    if o == owner {
-                        valid = true;
-                    } else {
-                        return valid;
-                    }
-                }
-                None => return valid,
+        fn is_project_valid(h: T::Hash) -> bool {
+            // check that the status of the project exists and is open or reopened.
+            match Self::project_hash_status(h) {
+                Some(0) | Some(100) => true,
+                _ => false,
             }
         }
 
-        return valid;
-    }
-
-    fn is_project_valid(h: T::Hash) -> bool {
-        // set default return value
-        let mut valid: bool = false;
-
-        // check that the status of the project exists and is open or reopened.
-        match Self::project_hash_status(h.clone()) {
-            Some(0) | Some(100) => valid = true,
-            _ => return valid,
+        fn is_owner_and_project_valid(o: T::AccountId, h: T::Hash) -> bool {
+            //TODO
+            // check validity of project
+            Self::is_project_valid(h) && Self::is_project_owner(o, h)
         }
-
-        return valid;
     }
 }

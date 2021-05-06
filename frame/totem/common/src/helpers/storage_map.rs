@@ -35,33 +35,30 @@
 // You should have received a copy of the GNU General Public License
 // along with Totem.  If not, see <http://www.gnu.org/licenses/>.
 
-#![cfg(any(test, feature = "mock"))]
+use codec::{Decode, Encode, EncodeLike, FullCodec, FullEncode};
+use frame_support::{dispatch::DispatchResultWithPostInfo, storage::StorageMap};
 
-use super::traits::accounting::Posting;
-use frame_support::dispatch::DispatchResultWithPostInfo;
-use sp_std::vec::Vec;
-
-impl<AccountId, Hash, BlockNumber, CoinAmount> Posting<AccountId, Hash, BlockNumber, CoinAmount> for () {
-    type Account = ();
-    type PostingIndex = u128;
-    type LedgerBalance = i128;
-
-    fn handle_multiposting_amounts(
-        fwd: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-        rev: Vec<(AccountId, Self::Account, Self::LedgerBalance, bool, Hash, BlockNumber, BlockNumber)>,
-    ) -> DispatchResultWithPostInfo {
-        unimplemented!("Used as a mock, shouldn't be called")
+/// Adds behavior to `StorageMap`s.
+pub trait StorageMapExt<K, V>
+where
+    Self: StorageMap<K, V>,
+    K: FullEncode + Encode + EncodeLike,
+    V: FullCodec + Decode + FullEncode + Encode + EncodeLike,
+{
+    /// If the key exists in the map, modifies it with the provided function,
+    /// otherwise, an error is returned.
+    fn mutate_or_err<KeyArg: EncodeLike<K>, F: FnOnce(&mut V)>(key: KeyArg, f: F) -> DispatchResultWithPostInfo {
+        Self::mutate_exists(key, |option| match option.as_mut() {
+            Some(value) => Ok(f(value).into()),
+            None => Err("Cannot recover the value".into()),
+        })
     }
+}
 
-    fn account_for_fees(f: CoinAmount, p: AccountId) -> DispatchResultWithPostInfo {
-        unimplemented!("Used as a mock, shouldn't be called")
-    }
-
-    fn get_escrow_account() -> AccountId {
-        unimplemented!("Used as a mock, shouldn't be called")
-    }
-
-    fn get_pseudo_random_hash(s: AccountId, r: AccountId) -> Hash {
-        unimplemented!("Used as a mock, shouldn't be called")
-    }
+impl<T, K, V> StorageMapExt<K, V> for T
+where
+    T: StorageMap<K, V>,
+    K: FullEncode + Encode + EncodeLike,
+    V: FullCodec + Decode + FullEncode + Encode + EncodeLike,
+{
 }
