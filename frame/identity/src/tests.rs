@@ -108,7 +108,7 @@ type EnsureTwoOrRoot = EnsureOneOf<
 	EnsureRoot<u64>,
 	EnsureSignedBy<Two, u64>
 >;
-impl Config for Test {
+impl pallet_identity::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type Slashed = ();

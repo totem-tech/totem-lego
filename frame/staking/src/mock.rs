@@ -96,6 +96,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Staking: staking::{Pallet, Call, Config<T>, Storage, Event<T>},
@@ -715,7 +716,7 @@ pub(crate) fn on_offence_in_era(
 	let bonded_eras = crate::BondedEras::get();
 	for &(bonded_era, start_session) in bonded_eras.iter() {
 		if bonded_era == era {
-			let _ = Staking::on_offence(offenders, slash_fraction, start_session).unwrap();
+			let _ = Staking::on_offence(offenders, slash_fraction, start_session);
 			return;
 		} else if bonded_era > era {
 			break;
@@ -728,7 +729,7 @@ pub(crate) fn on_offence_in_era(
 				offenders,
 				slash_fraction,
 				Staking::eras_start_session_index(era).unwrap()
-			).unwrap();
+			);
 	} else {
 		panic!("cannot slash in era {}", era);
 	}
