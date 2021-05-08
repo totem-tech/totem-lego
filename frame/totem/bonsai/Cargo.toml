@@ -1,6 +1,6 @@
 [package]
-authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
-description = 'Decentralised authority for data storage'
+authors = ["Totem Accounting <support@totemaccounting.com>"]
+description = 'Decentralised 2FA for Offchain Data Storage'
 edition = '2018'
 homepage = 'https://totemaccounting.com'
 license = 'GNU'

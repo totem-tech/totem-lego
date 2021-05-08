@@ -25,7 +25,7 @@ use crate::service::new_partial;
 
 impl SubstrateCli for Cli {
 	fn impl_name() -> String {
-		"Substrate Node".into()
+		"Totem Lego Node".into()
 	}
 
 	fn impl_version() -> String {
@@ -41,11 +41,11 @@ impl SubstrateCli for Cli {
 	}
 
 	fn support_url() -> String {
-		"https://github.com/paritytech/substrate/issues/new".into()
+		"https://gitlab.com/totem-tech/totem-lego/-/issues/new".into()
 	}
 
 	fn copyright_start_year() -> i32 {
-		2017
+		2018
 	}
 
 	fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {

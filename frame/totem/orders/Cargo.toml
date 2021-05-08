@@ -1,6 +1,6 @@
 [package]
-authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
-description = 'Totem Orders Module'
+authors = ["Totem Accounting <support@totemaccounting.com>"]
+description = 'Totem Purchase and Sales Order Pallet'
 edition = '2018'
 homepage = 'https://totemaccounting.com'
 license = 'GNU'

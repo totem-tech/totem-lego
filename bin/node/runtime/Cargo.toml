@@ -1,12 +1,12 @@
 [package]
 name = "node-runtime"
 version = "2.0.1"
-authors = ["Parity Technologies <admin@parity.io>"]
+authors = ["Totem Accounting <support@totemaccounting.com>"]
 edition = "2018"
 build = "build.rs"
 license = "Apache-2.0"
-homepage = "https://substrate.dev"
-repository = "https://github.com/paritytech/substrate/"
+homepage = "https://totemaccounting.com"
+repository = "https://gitlab.com/totem-tech/totem-lego"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -52,13 +52,13 @@ pallet-babe = { version = "3.0.0", default-features = false, path = "../../../fr
 pallet-balances = { version = "3.0.0", default-features = false, path = "../../../frame/balances" }
 pallet-bounties = { version = "3.0.0", default-features = false, path = "../../../frame/bounties" }
 pallet-collective = { version = "3.0.0", default-features = false, path = "../../../frame/collective" }
-pallet-contracts = { version = "3.0.0", default-features = false, path = "../../../frame/contracts" }
-pallet-contracts-primitives = { version = "3.0.0", default-features = false, path = "../../../frame/contracts/common/" }
-pallet-contracts-rpc-runtime-api = { version = "3.0.0", default-features = false, path = "../../../frame/contracts/rpc/runtime-api/" }
+# pallet-contracts = { version = "3.0.0", default-features = false, path = "../../../frame/contracts" }
+# pallet-contracts-primitives = { version = "3.0.0", default-features = false, path = "../../../frame/contracts/common/" }
+# pallet-contracts-rpc-runtime-api = { version = "3.0.0", default-features = false, path = "../../../frame/contracts/rpc/runtime-api/" }
 pallet-democracy = { version = "3.0.0", default-features = false, path = "../../../frame/democracy" }
 pallet-election-provider-multi-phase = { version = "3.0.0", default-features = false, path = "../../../frame/election-provider-multi-phase" }
 pallet-elections-phragmen = { version = "4.0.0", default-features = false, path = "../../../frame/elections-phragmen" }
-pallet-gilt = { version = "3.0.0", default-features = false, path = "../../../frame/gilt" }
+# pallet-gilt = { version = "3.0.0", default-features = false, path = "../../../frame/gilt" }
 pallet-grandpa = { version = "3.0.0", default-features = false, path = "../../../frame/grandpa" }
 pallet-im-online = { version = "3.0.0", default-features = false, path = "../../../frame/im-online" }
 pallet-indices = { version = "3.0.0", default-features = false, path = "../../../frame/indices" }
@@ -118,13 +118,13 @@ std = [
 	"sp-block-builder/std",
 	"codec/std",
 	"pallet-collective/std",
-	"pallet-contracts/std",
-	"pallet-contracts-primitives/std",
-	"pallet-contracts-rpc-runtime-api/std",
+	# "pallet-contracts/std",
+	# "pallet-contracts-primitives/std",
+	# "pallet-contracts-rpc-runtime-api/std",
 	"pallet-democracy/std",
 	"pallet-elections-phragmen/std",
 	"frame-executive/std",
-	"pallet-gilt/std",
+	# "pallet-gilt/std",
 	"pallet-grandpa/std",
 	"pallet-im-online/std",
 	"pallet-indices/std",
@@ -191,10 +191,10 @@ runtime-benchmarks = [
 	"pallet-balances/runtime-benchmarks",
 	"pallet-bounties/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
-	"pallet-contracts/runtime-benchmarks",
+	# "pallet-contracts/runtime-benchmarks",
 	"pallet-democracy/runtime-benchmarks",
 	"pallet-elections-phragmen/runtime-benchmarks",
-	"pallet-gilt/runtime-benchmarks",
+	# "pallet-gilt/runtime-benchmarks",
 	"pallet-grandpa/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
 	"pallet-im-online/runtime-benchmarks",
@@ -228,7 +228,7 @@ try-runtime = [
 	"pallet-balances/try-runtime",
 	"pallet-bounties/try-runtime",
 	"pallet-collective/try-runtime",
-	"pallet-contracts/try-runtime",
+	# "pallet-contracts/try-runtime",
 	"pallet-democracy/try-runtime",
 	"pallet-elections-phragmen/try-runtime",
 	"pallet-grandpa/try-runtime",
@@ -255,5 +255,5 @@ try-runtime = [
 	"pallet-society/try-runtime",
 	"pallet-recovery/try-runtime",
 	"pallet-vesting/try-runtime",
-	"pallet-gilt/try-runtime",
+	# "pallet-gilt/try-runtime",
 ]

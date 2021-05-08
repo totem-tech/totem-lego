@@ -1,6 +1,6 @@
 [package]
-authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
-description = 'Locking prefunded amounts into the runtime'
+authors = ["Totem Accounting <support@totemaccounting.com>"]
+description = 'Companion to Prefund Orders Pallet'
 edition = '2018'
 homepage = 'https://totemaccounting.com'
 license = 'GNU'

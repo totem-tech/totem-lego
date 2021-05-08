@@ -1,6 +1,6 @@
 [package]
-authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
-description = 'Totem archive'
+authors = ["Totem Accounting <support@totemaccounting.com>"]
+description = 'Totem Archive Pallet'
 edition = '2018'
 homepage = 'https://totemaccounting.com'
 license = 'GNU'

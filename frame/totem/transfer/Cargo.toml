@@ -1,6 +1,6 @@
 [package]
-authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
-description = 'Funds Transfer Pallet'
+authors = ["Totem Accounting <support@totemaccounting.com>"]
+description = 'Funds Transfer Wrapper Pallet (replaces Balances Transfer)'
 edition = '2018'
 homepage = 'https://totemaccounting.com'
 license = 'GNU'

@@ -1,6 +1,6 @@
 [package]
-authors = ["Totem Live Accounting <chris.dcosta@totemaccounting.com>"]
-description = 'Code that is common to all the Totem pallets'
+authors = ["Totem Accounting <support@totemaccounting.com>"]
+description = 'Code that is common to all the Totem Pallets'
 edition = '2018'
 homepage = 'https://totemaccounting.com'
 license = 'GNU'
