@@ -22,7 +22,9 @@ use sc_chain_spec::ChainSpecExtension;
 use sp_core::{Pair, Public, crypto::UncheckedInto, sr25519};
 use serde::{Serialize, Deserialize};
 use node_runtime::{
-	AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, ContractsConfig, CouncilConfig,
+	AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, 
+	// ContractsConfig, 
+	CouncilConfig,
 	DemocracyConfig, FundingConfig, GrandpaConfig, ImOnlineConfig, SessionConfig, SessionKeys, StakerStatus,
 	StakingConfig, ElectionsConfig, IndicesConfig, SocietyConfig, SudoConfig, SystemConfig,
 	TechnicalCommitteeConfig, wasm_binary_unwrap, MAX_NOMINATIONS,
@@ -309,11 +311,11 @@ pub fn testnet_genesis(
 						.collect(),
 			phantom: Default::default(),
 		},
-		pallet_contracts: ContractsConfig {
-			// println should only be enabled on development chains
-			current_schedule: pallet_contracts::Schedule::default()
-				.enable_println(enable_println),
-		},
+		// pallet_contracts: ContractsConfig {
+		// 	// println should only be enabled on development chains
+		// 	current_schedule: pallet_contracts::Schedule::default()
+		// 		.enable_println(enable_println),
+		// },
 		pallet_sudo: SudoConfig {
 			key: root_key,
 		},
@@ -341,7 +343,7 @@ pub fn testnet_genesis(
 			max_members: 999,
 		},
 		pallet_vesting: Default::default(),
-		pallet_gilt: Default::default(),
+		// pallet_gilt: Default::default(),
 	}
 }
 
