@@ -115,7 +115,7 @@ pub fn create_full<C, P, SC, B>(
 	C: ProvideRuntimeApi<Block> + HeaderBackend<Block> + AuxStore +
 		HeaderMetadata<Block, Error=BlockChainError> + Sync + Send + 'static,
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
-	C::Api: pallet_contracts_rpc::ContractsRuntimeApi<Block, AccountId, Balance, BlockNumber, Hash>,
+	// C::Api: pallet_contracts_rpc::ContractsRuntimeApi<Block, AccountId, Balance, BlockNumber, Hash>,
 	C::Api: pallet_mmr_rpc::MmrRuntimeApi<Block, <Block as sp_runtime::traits::Block>::Hash>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: BabeApi<Block>,
@@ -126,7 +126,7 @@ pub fn create_full<C, P, SC, B>(
 	B::State: sc_client_api::backend::StateBackend<sp_runtime::traits::HashFor<Block>>,
 {
 	use substrate_frame_rpc_system::{FullSystem, SystemApi};
-	use pallet_contracts_rpc::{Contracts, ContractsApi};
+	// use pallet_contracts_rpc::{Contracts, ContractsApi};
 	use pallet_mmr_rpc::{MmrApi, Mmr};
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
 
