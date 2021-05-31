@@ -209,6 +209,9 @@ members = [
 	"frame/totem/timekeeping",
 	"frame/totem/transfer",
 	"frame/totem/common",
+	# temp deps
+	"max-encoded-len",
+	"max-encoded-len/derive",
 ]
 
 # The list of dependencies below (which can be both direct and indirect dependencies) are crates
