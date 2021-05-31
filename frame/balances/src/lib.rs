@@ -584,7 +584,7 @@ pub struct BalanceLock<Balance> {
 /// The Totem version of single lock on a balance.
 /// There can be many of these on an account and they "overlap",
 /// so the same balance is frozen by multiple locks.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, MaxEncodedLen)]
 pub struct TotemBalanceLock<Balance, BlockNumber> {
 	/// An identifier for this lock. Only one lock may be in existence for each identifier.
 	pub id: LockIdentifier,
