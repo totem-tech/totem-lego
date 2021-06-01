@@ -1,7 +1,9 @@
 // Custom totem stuff.
 
 use super::*;
+use core::convert::TryFrom;
 use frame_support::traits::WithdrawReasons;
+use sp_std::vec::Vec;
 use totem_common::traits::accounting::Posting;
 
 /// A currency whose accounts can have liquidity restrictions.
@@ -24,7 +26,7 @@ pub trait TotemLockableCurrency<AccountId>: Currency<AccountId> {
         amount: Self::Balance,
         until: Self::Moment,
         reasons: WithdrawReasons,
-    );
+    ) -> Result<(), ()>;
 
     /// Changes a balance lock (selected by `id`) so that it becomes less liquid in all
     /// parameters or creates a new one if it does not exist.
@@ -40,10 +42,10 @@ pub trait TotemLockableCurrency<AccountId>: Currency<AccountId> {
         amount: Self::Balance,
         until: Self::Moment,
         reasons: WithdrawReasons,
-    );
+    ) -> Result<(), ()>;
 
     /// Remove an existing lock.
-    fn totem_remove_lock(id: LockIdentifier, who: &AccountId);
+    fn totem_remove_lock(id: LockIdentifier, who: &AccountId) -> Result<(), ()>;
 }
 
 impl<T: Config<I>, I: 'static> TotemLockableCurrency<T::AccountId> for Pallet<T, I>
@@ -62,9 +64,9 @@ where
         amount: T::Balance,
         until: T::BlockNumber,
         reasons: WithdrawReasons,
-    ) {
+    ) -> Result<(), ()> {
         if amount.is_zero() || reasons.is_empty() {
-            return;
+            return Ok(());
         }
 
         let now = frame_system::Pallet::<T>::block_number();
@@ -95,9 +97,8 @@ where
         }
 
         // Now apply the lock by transfering to the escrow
-        if let Ok(_) = Self::transfer_to_the_escrow(who, amount) {
-            Self::totem_update_locks(who, &locks[..]);
-        }
+        Self::transfer_to_the_escrow(who, amount).map_err(|_e| ())?;
+        Self::totem_update_locks(who, locks)
     }
 
     // Extend a lock on the balance of `who`.
@@ -108,9 +109,9 @@ where
         amount: T::Balance,
         until: T::BlockNumber,
         reasons: WithdrawReasons,
-    ) {
+    ) -> Result<(), ()> {
         if amount.is_zero() || reasons.is_empty() {
-            return;
+            return Ok(());
         }
 
         let now = frame_system::Pallet::<T>::block_number();
@@ -144,12 +145,11 @@ where
         }
 
         // Now apply the lock by transfering to the escrow
-        if let Ok(_) = Self::transfer_to_the_escrow(who, amount) {
-            Self::totem_update_locks(who, &locks[..]);
-        }
+        Self::transfer_to_the_escrow(who, amount).map_err(|_e| ())?;
+        Self::totem_update_locks(who, locks)
     }
 
-    fn totem_remove_lock(id: LockIdentifier, who: &T::AccountId) {
+    fn totem_remove_lock(id: LockIdentifier, who: &T::AccountId) -> Result<(), ()> {
         let mut locks = Self::totem_locks(who);
 
         let mut i = 0;
@@ -162,13 +162,16 @@ where
             }
         }
 
-        Self::totem_update_locks(who, &locks[..]);
+        Self::totem_update_locks(who, locks.into_inner())
     }
 }
 
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
     /// Update the account entry for `who`, given the locks.
-    fn totem_update_locks(who: &T::AccountId, locks: &[TotemBalanceLock<T::Balance, T::BlockNumber>]) {
+    fn totem_update_locks(
+        who: &T::AccountId,
+        locks: Vec<TotemBalanceLock<T::Balance, T::BlockNumber>>,
+    ) -> Result<(), ()> {
         if locks.len() as u32 > T::MaxLocks::get() {
             log::warn!(
                 target: "runtime::balances",
@@ -186,7 +189,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 system::Pallet::<T>::dec_consumers(who);
             }
         } else {
-            TotemLocks::<T, I>::insert(who, locks);
+            TotemLocks::<T, I>::insert(who, WeakBoundedVec::try_from(locks)?);
             if !existed {
                 if system::Pallet::<T>::inc_consumers(who).is_err() {
                     // No providers for the locks. This is impossible under normal circumstances
@@ -200,6 +203,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 }
             }
         }
+
+        Ok(())
     }
 
     fn transfer_to_the_escrow(who: &T::AccountId, amount: T::Balance) -> result::Result<(), DispatchError> {
