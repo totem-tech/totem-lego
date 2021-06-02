@@ -461,7 +461,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		T::AccountId,
-		WeakBoundedVec<TotemBalanceLock<T::Balance, T::BlockNumber>, T::MaxLocks>,
+		WeakBoundedVec<TotemBalanceLock<T::Balance, T::BlockNumber>, totem::MaxTotemLocks>,
 		ValueQuery
 	>;
 

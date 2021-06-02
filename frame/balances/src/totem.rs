@@ -26,7 +26,7 @@ pub trait TotemLockableCurrency<AccountId>: Currency<AccountId> {
         amount: Self::Balance,
         until: Self::Moment,
         reasons: WithdrawReasons,
-    ) -> Result<(), ()>;
+    ) -> Result<(), TotemLocksError>;
 
     /// Changes a balance lock (selected by `id`) so that it becomes less liquid in all
     /// parameters or creates a new one if it does not exist.
@@ -42,10 +42,10 @@ pub trait TotemLockableCurrency<AccountId>: Currency<AccountId> {
         amount: Self::Balance,
         until: Self::Moment,
         reasons: WithdrawReasons,
-    ) -> Result<(), ()>;
+    ) -> Result<(), TotemLocksError>;
 
     /// Remove an existing lock.
-    fn totem_remove_lock(id: LockIdentifier, who: &AccountId) -> Result<(), ()>;
+    fn totem_remove_lock(id: LockIdentifier, who: &AccountId) -> Result<(), TotemLocksError>;
 }
 
 impl<T: Config<I>, I: 'static> TotemLockableCurrency<T::AccountId> for Pallet<T, I>
@@ -54,7 +54,7 @@ where
 {
     type Moment = T::BlockNumber;
 
-    type MaxLocks = T::MaxLocks;
+    type MaxLocks = MaxTotemLocks;
 
     // Set a lock on the balance of `who`.
     // Is a no-op if lock amount is zero or `reasons` `is_none()`.
@@ -64,7 +64,7 @@ where
         amount: T::Balance,
         until: T::BlockNumber,
         reasons: WithdrawReasons,
-    ) -> Result<(), ()> {
+    ) -> Result<(), TotemLocksError> {
         if amount.is_zero() || reasons.is_empty() {
             return Ok(());
         }
@@ -97,7 +97,7 @@ where
         }
 
         // Now apply the lock by transfering to the escrow
-        Self::transfer_to_the_escrow(who, amount).map_err(|_e| ())?;
+        Self::transfer_to_the_escrow(who, amount)?;
         Self::totem_update_locks(who, locks)
     }
 
@@ -109,7 +109,7 @@ where
         amount: T::Balance,
         until: T::BlockNumber,
         reasons: WithdrawReasons,
-    ) -> Result<(), ()> {
+    ) -> Result<(), TotemLocksError> {
         if amount.is_zero() || reasons.is_empty() {
             return Ok(());
         }
@@ -145,11 +145,11 @@ where
         }
 
         // Now apply the lock by transfering to the escrow
-        Self::transfer_to_the_escrow(who, amount).map_err(|_e| ())?;
+        Self::transfer_to_the_escrow(who, amount)?;
         Self::totem_update_locks(who, locks)
     }
 
-    fn totem_remove_lock(id: LockIdentifier, who: &T::AccountId) -> Result<(), ()> {
+    fn totem_remove_lock(id: LockIdentifier, who: &T::AccountId) -> Result<(), TotemLocksError> {
         let mut locks = Self::totem_locks(who);
 
         let mut i = 0;
@@ -171,15 +171,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     fn totem_update_locks(
         who: &T::AccountId,
         locks: Vec<TotemBalanceLock<T::Balance, T::BlockNumber>>,
-    ) -> Result<(), ()> {
-        if locks.len() as u32 > T::MaxLocks::get() {
-            log::warn!(
-                target: "runtime::balances",
-                "Warning: A user has more currency totem locks than expected. \
-                A runtime configuration adjustment may be needed."
-            );
-        }
-
+    ) -> Result<(), TotemLocksError> {
         let existed = TotemLocks::<T, I>::contains_key(who);
         if locks.is_empty() {
             Locks::<T, I>::remove(who);
@@ -189,7 +181,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 system::Pallet::<T>::dec_consumers(who);
             }
         } else {
-            TotemLocks::<T, I>::insert(who, WeakBoundedVec::try_from(locks)?);
+            TotemLocks::<T, I>::insert(
+                who,
+                WeakBoundedVec::try_from(locks).or(Err(TotemLocksError::NoPlaceRemaining))?,
+            );
             if !existed {
                 if system::Pallet::<T>::inc_consumers(who).is_err() {
                     // No providers for the locks. This is impossible under normal circumstances
@@ -207,7 +202,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(())
     }
 
-    fn transfer_to_the_escrow(who: &T::AccountId, amount: T::Balance) -> result::Result<(), DispatchError> {
+    fn transfer_to_the_escrow(who: &T::AccountId, amount: T::Balance) -> result::Result<(), TotemLocksError> {
         let imba = Self::withdraw(who, amount, WithdrawReasons::ESCROW, ExistenceRequirement::KeepAlive)?;
 
         let escrow_account: T::AccountId = T::Accounting::get_escrow_account();
@@ -216,5 +211,26 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         let _imba_resolved = imba;
 
         Ok(())
+    }
+}
+
+pub struct MaxTotemLocks;
+
+impl Get<u32> for MaxTotemLocks {
+    fn get() -> u32 {
+        u32::MAX
+    }
+}
+
+pub enum TotemLocksError {
+    /// There is no enough place remaining to add a lock for this account.
+    NoPlaceRemaining,
+    /// The fund cannot be tranfered to the escrow.
+    CannotTransferToTheEscrow(DispatchError),
+}
+
+impl From<DispatchError> for TotemLocksError {
+    fn from(e: DispatchError) -> TotemLocksError {
+        TotemLocksError::CannotTransferToTheEscrow(e)
     }
 }

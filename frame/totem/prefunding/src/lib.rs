@@ -333,7 +333,7 @@ mod pallet {
                     d,
                     WithdrawReasons::RESERVE,
                 )
-                .map_err(|_e| "Error setting a lock")?;
+                .or(Err("Error setting a lock"))?;
             } else {
                 fail!(Error::<T>::InsufficientPreFunds);
             }
@@ -391,7 +391,7 @@ mod pallet {
             // convert hash to lock identifyer
             let prefunding_id = Self::get_prefunding_id(h);
             // unlock the funds
-            T::Currency::totem_remove_lock(prefunding_id, &o).map_err(|_e| "Error removing a lock")?;
+            T::Currency::totem_remove_lock(prefunding_id, &o).or(Err("Error removing a lock"))?;
             // perform cleanup removing all reference hashes. No accounting posting have been made, so no cleanup needed there
             Prefunding::<T>::remove(&h);
             PrefundingHashOwner::<T>::remove(&h);
