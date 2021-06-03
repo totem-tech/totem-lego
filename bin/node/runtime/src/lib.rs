@@ -33,7 +33,7 @@ use frame_support::{
 	},
 	traits::{
 		Currency, Imbalance, KeyOwnerProofSystem, OnUnbalanced, LockIdentifier,
-		U128CurrencyToVote,
+		U128CurrencyToVote, MaxEncodedLen,
 	},
 };
 use frame_system::{
@@ -262,7 +262,7 @@ parameter_types! {
 }
 
 /// The type used to represent the kinds of proxying allowed.
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
 pub enum ProxyType {
 	Any,
 	NonTransfer,
@@ -562,6 +562,7 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type CompactSolution = NposCompactSolution16;
 	type Fallback = Fallback;
 	type WeightInfo = pallet_election_provider_multi_phase::weights::SubstrateWeight<Runtime>;
+	type ForceOrigin = EnsureRootOrHalfCouncil;
 	type BenchmarkingConfig = ();
 }
 
@@ -791,7 +792,6 @@ impl pallet_tips::Config for Runtime {
 // 	pub RentFraction: Perbill = Perbill::from_rational(1u32, 30 * DAYS);
 // 	pub const SurchargeReward: Balance = 150 * MILLICENTS;
 // 	pub const SignedClaimHandicap: u32 = 2;
-// 	pub const MaxDepth: u32 = 32;
 // 	pub const MaxValueSize: u32 = 16 * 1024;
 // 	// The lazy deletion runs inside on_initialize.
 // 	pub DeletionWeightLimit: Weight = AVERAGE_ON_INITIALIZE_RATIO *
@@ -802,7 +802,7 @@ impl pallet_tips::Config for Runtime {
 // 			<Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(1) -
 // 			<Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(0)
 // 		)) / 5) as u32;
-// 	pub MaxCodeSize: u32 = 128 * 1024;
+// 	pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
 // }
 
 // impl pallet_contracts::Config for Runtime {
@@ -818,14 +818,13 @@ impl pallet_tips::Config for Runtime {
 // 	type DepositPerStorageItem = DepositPerStorageItem;
 // 	type RentFraction = RentFraction;
 // 	type SurchargeReward = SurchargeReward;
-// 	type MaxDepth = MaxDepth;
-// 	type MaxValueSize = MaxValueSize;
-// 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
+// 	type CallStack = [pallet_contracts::Frame<Self>; 31];
+// 	type WeightPrice = pallet_transaction_payment::Module<Self>;
 // 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
 // 	type ChainExtension = ();
 // 	type DeletionQueueDepth = DeletionQueueDepth;
 // 	type DeletionWeightLimit = DeletionWeightLimit;
-// 	type MaxCodeSize = MaxCodeSize;
+// 	type Schedule = Schedule;
 // }
 
 impl pallet_sudo::Config for Runtime {
@@ -1153,6 +1152,30 @@ mod totem {
 	}
 }
 
+parameter_types! {
+	pub const ClassDeposit: Balance = 100 * DOLLARS;
+	pub const InstanceDeposit: Balance = 1 * DOLLARS;
+	pub const KeyLimit: u32 = 32;
+	pub const ValueLimit: u32 = 256;
+}
+
+impl pallet_uniques::Config for Runtime {
+	type Event = Event;
+	type ClassId = u32;
+	type InstanceId = u32;
+	type Currency = Balances;
+	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
+	type ClassDeposit = ClassDeposit;
+	type InstanceDeposit = InstanceDeposit;
+	type MetadataDepositBase = MetadataDepositBase;
+	type AttributeDepositBase = MetadataDepositBase;
+	type DepositPerByte = MetadataDepositPerByte;
+	type StringLimit = StringLimit;
+	type KeyLimit = KeyLimit;
+	type ValueLimit = ValueLimit;
+	type WeightInfo = pallet_uniques::weights::SubstrateWeight<Runtime>;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1208,6 +1231,7 @@ construct_runtime!(
 		Mmr: pallet_mmr::{Pallet, Storage},
 		Lottery: pallet_lottery::{Pallet, Call, Storage, Event<T>},
 		// Gilt: pallet_gilt::{Pallet, Call, Storage, Event<T>, Config},
+		Uniques: pallet_uniques::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -1424,7 +1448,7 @@ impl_runtime_apis! {
 	// 		gas_limit: u64,
 	// 		input_data: Vec<u8>,
 	// 	) -> pallet_contracts_primitives::ContractExecResult {
-	// 		Contracts::bare_call(origin, dest, value, gas_limit, input_data)
+	// 		Contracts::bare_call(origin, dest, value, gas_limit, input_data, true)
 	// 	}
 
 	// 	fn instantiate(
@@ -1436,7 +1460,7 @@ impl_runtime_apis! {
 	// 		salt: Vec<u8>,
 	// 	) -> pallet_contracts_primitives::ContractInstantiateResult<AccountId, BlockNumber>
 	// 	{
-	// 		Contracts::bare_instantiate(origin, endowment, gas_limit, code, data, salt, true)
+	// 		Contracts::bare_instantiate(origin, endowment, gas_limit, code, data, salt, true, true)
 	// 	}
 
 	// 	fn get_storage(
@@ -1578,6 +1602,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_timestamp, Timestamp);
 			add_benchmark!(params, batches, pallet_tips, Tips);
 			add_benchmark!(params, batches, pallet_treasury, Treasury);
+			add_benchmark!(params, batches, pallet_uniques, Uniques);
 			add_benchmark!(params, batches, pallet_utility, Utility);
 			add_benchmark!(params, batches, pallet_vesting, Vesting);
 
