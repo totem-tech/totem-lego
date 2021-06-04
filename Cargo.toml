@@ -200,16 +200,6 @@ members = [
 	"utils/frame/rpc/system",
 	"utils/prometheus",
 	"utils/wasm-builder",
-	"frame/totem/accounting",
-	"frame/totem/archive",
-	"frame/totem/bonsai",
-	"frame/totem/funding",
-	"frame/totem/orders",
-	"frame/totem/prefunding",
-	"frame/totem/teams",
-	"frame/totem/timekeeping",
-	"frame/totem/transfer",
-	"frame/totem/common",
 	# temp deps
 	"max-encoded-len",
 	"max-encoded-len/derive",
@@ -281,3 +271,22 @@ zeroize = { opt-level = 3 }
 [profile.release]
 # Substrate runtime requires unwinding.
 panic = "unwind"
+
+[patch.'https://github.com/paritytech/substrate.git']
+sp-arithmetic = { path = 'primitives/arithmetic', default-features = false }
+sp-core = { path = 'primitives/core', default-features = false }
+sp-externalities = { path = 'primitives/externalities', default-features = false }
+sp-io = { path = 'primitives/io', default-features = false }
+sp-runtime = { path = 'primitives/runtime', default-features = false }
+sp-state-machine = { path = 'primitives/state-machine', default-features = false }
+sp-std = { path = 'primitives/std', default-features = false }
+sp-storage = { path = 'primitives/storage', default-features = false }
+
+frame-support = { path = 'frame/support', default-features = false }
+frame-system = { path = 'frame/system', default-features = false }
+
+pallet-randomness = { package = 'pallet-randomness-collective-flip', path = 'frame/randomness-collective-flip', default-features = false }
+pallet-timestamp = { path = 'frame/timestamp', default-features = false }
+
+[patch.'https://gitlab.com/totem-tech/totem-mainnet-pallets']
+pallet-balances = { path = 'frame/balances', default-features = false }

@@ -1101,7 +1101,7 @@ mod totem {
 
 	impl pallet_accounting::Config for Runtime {
 		type Event = Event;
-		type AccountingConversions = conversion_handler::ConversionHandler;
+		type AccountingConverter = totem_common::converter::Converter;
 	}
 
 	impl pallet_archive::Config for Runtime {
@@ -1114,7 +1114,7 @@ mod totem {
 		type Orders = pallet_orders::Pallet<Self>;
 		type Projects = pallet_teams::Pallet<Self>;
 		type Timekeeping = pallet_timekeeping::Pallet<Self>;
-		type BonsaiConversions = conversion_handler::ConversionHandler;
+		type BonsaiConverter = totem_common::converter::Converter;
 	}
 
 	impl pallet_funding::Config for Runtime {
@@ -1125,14 +1125,14 @@ mod totem {
 		type Event = Event;
 		type Accounting = pallet_accounting::Pallet<Self>;
 		type Prefunding = pallet_prefunding::Pallet<Self>;
-		type OrderConversions = conversion_handler::ConversionHandler;
+		type OrdersConverter = totem_common::converter::Converter;
 		type Bonsai = pallet_bonsai::Pallet<Self>;
 	}
 
 	impl pallet_prefunding::Config for Runtime {
 		type Event = Event;
 		type Currency = pallet_balances::Pallet<Self>;
-		type PrefundingConversions = conversion_handler::ConversionHandler;
+		type PrefundingConverter = totem_common::converter::Converter;
 	}
 
 	impl pallet_teams::Config for Runtime {
@@ -1147,7 +1147,7 @@ mod totem {
 	impl pallet_transfer::Config for Runtime {
 		type Event = Event;
 		type Currency = pallet_balances::Pallet<Self>;
-		type TransferConversions = conversion_handler::ConversionHandler;
+		type TransferConverter = totem_common::converter::Converter;
 		type Bonsai = pallet_bonsai::Pallet<Self>;
 	}
 }

@@ -27,7 +27,7 @@ sp-core = { version = "3.0.0", path = "../../primitives/core" }
 pallet-balances = { version = "3.0.0", path = "../balances" }
 sp-storage = { version = "3.0.0", path = "../../primitives/storage" }
 hex-literal = "0.3.1"
-pallet-accounting = { package = "pallet-accounting", path = "../totem/accounting", default-features = false }
+pallet-accounting = { git = "https://gitlab.com/totem-tech/totem-mainnet-pallets", branch = "dev", default-features = false }
 
 [features]
 default = ["std"]

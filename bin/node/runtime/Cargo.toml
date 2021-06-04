@@ -88,15 +88,16 @@ pallet-transaction-payment-rpc-runtime-api = { version = "3.0.0", default-featur
 pallet-uniques = { version = "3.0.0", default-features = false, path = "../../../frame/uniques" }
 pallet-vesting = { version = "3.0.0", default-features = false, path = "../../../frame/vesting" }
 
-pallet-accounting = { default-features = false, path = "../../../frame/totem/accounting" }
-pallet-archive = { default-features = false, path = "../../../frame/totem/archive" }
-pallet-bonsai = { default-features = false, path = "../../../frame/totem/bonsai" }
-pallet-funding = { default-features = false, path = "../../../frame/totem/funding" }
-pallet-orders = { default-features = false, path = "../../../frame/totem/orders" }
-pallet-prefunding = { default-features = false, path = "../../../frame/totem/prefunding" }
-pallet-teams = { default-features = false, path = "../../../frame/totem/teams" }
-pallet-timekeeping = { default-features = false, path = "../../../frame/totem/timekeeping" }
-pallet-transfer = { default-features = false, path = "../../../frame/totem/transfer" }
+pallet-accounting = { default-features = false, git = "https://gitlab.com/totem-tech/totem-mainnet-pallets", branch = "dev" }
+pallet-archive = { default-features = false, git = "https://gitlab.com/totem-tech/totem-mainnet-pallets", branch = "dev" }
+pallet-bonsai = { default-features = false, git = "https://gitlab.com/totem-tech/totem-mainnet-pallets", branch = "dev" }
+pallet-funding = { default-features = false, git = "https://gitlab.com/totem-tech/totem-mainnet-pallets", branch = "dev" }
+pallet-orders = { default-features = false, git = "https://gitlab.com/totem-tech/totem-mainnet-pallets", branch = "dev" }
+pallet-prefunding = { default-features = false, git = "https://gitlab.com/totem-tech/totem-mainnet-pallets", branch = "dev" }
+pallet-teams = { default-features = false, git = "https://gitlab.com/totem-tech/totem-mainnet-pallets", branch = "dev" }
+pallet-timekeeping = { default-features = false, git = "https://gitlab.com/totem-tech/totem-mainnet-pallets", branch = "dev" }
+pallet-transfer = { default-features = false, git = "https://gitlab.com/totem-tech/totem-mainnet-pallets", branch = "dev" }
+totem-common = { default-features = false, git = "https://gitlab.com/totem-tech/totem-mainnet-pallets", branch = "dev" }
 max-encoded-len = { version = "3.0.0", default-features = false, path = "../../../max-encoded-len", features = [ "derive" ] }
 
 [build-dependencies]

@@ -35,7 +35,7 @@ pallet-timestamp = { version = "3.0.0", path = "../../timestamp" }
 serde = { version = "1.0.101" }
 sp-core = { version = "3.0.0", path = "../../../primitives/core" }
 sp-io = { version = "3.0.0", path = "../../../primitives/io" }
-pallet-accounting = { package = "pallet-accounting", path = "../../totem/accounting", default-features = false }
+pallet-accounting = { git = "https://gitlab.com/totem-tech/totem-mainnet-pallets", branch = "dev", default-features = false }
 
 [features]
 default = ["std"]
